@@ -159,8 +159,6 @@ body{
 
 .foot{ font-size:12px; color:var(--ink-dim); text-align:center; line-height:1.8; margin:0; }
 .foot b{ color:var(--pink); font-weight:400; }
-.linkish{ font:inherit; font-size:12px; color:var(--ink-dim); background:none; border:0;
-          text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:5px; }
 
 /* ---------- 하야로비 서명 ---------- */
 .brand{ margin-top:2px; text-align:center; line-height:1.35;
@@ -258,7 +256,7 @@ body{
   <div class="greeting">
     <p class="eyebrow" id="eyebrow">새해 복 많이 받으세요 🧧</p>
     <h1>용돈 룰렛 🎀</h1>
-    <p id="sub">딱 한 번만 돌릴 수 있어요 ✨</p>
+    <p id="sub">이름을 적고 돌려보세요 ✨</p>
   </div>
 
   <div class="stage">
@@ -280,13 +278,11 @@ body{
     꽝 · 1천 · 5천 · 1만 · 2만 · 5만 <b>각 2칸</b> 🎯<br>
     칸 크기와 상관없이 <b>확률은 모두 12분의 1</b>이에요 💡
   </p>
-  <button type="button" class="linkish" id="btnShowResult" hidden>내 결과 다시 보기 👀</button>
 
-  <div class="brand" id="brand">
+  <div class="brand">
     <p class="lab">AI Community Lab</p>
     <p class="name">Hayarobi 💖</p>
   </div>
-  <button type="button" class="linkish" id="btnReset" hidden>기록 지우고 다시 뽑기 🔄</button>
 </div>
 
 <canvas id="confetti" hidden></canvas>
@@ -306,7 +302,7 @@ body{
     <strong id="resultTime"></strong><br>
     이 화면을 <strong>용돈 주시는 분께</strong> 보여주세요 📱
   </p>
-  <button type="button" class="cta" id="btnClose">확인 💖</button>
+  <button type="button" class="cta" id="btnClose">다음 사람 💖</button>
 </div>
 
 <script>
@@ -350,14 +346,12 @@ const FESTIVAL = {
   chuseok:{ greeting:'풍성한 한가위 되세요 🌕',  emblem:'🌕' }
 };
 
-const KEY_RESULT = 'myeongjeol-roulette:result';
 const KEY_FEST   = 'myeongjeol-roulette:fest';
 const KEY_MUTED  = 'myeongjeol-roulette:muted';
 
 /* ---------- 2. 저장소 -------------------------------------------------------
-   각자 휴대폰에서 링크를 열어 한 번만 돌리는 구조라, 결과를 그 폰에 남겨 두고
-   재실행을 막는다. 시크릿 모드로 열면 우회되지만 가족끼리 쓰는 용도라
-   이 정도면 충분하다. 저장이 막힌 환경(프라이빗 창 등)에서도 게임 자체는
+   횟수 제한이 없으므로 결과는 저장하지 않는다. 명절 탭과 음소거 여부만
+   그 폰에 기억해 둔다. 저장이 막힌 환경(프라이빗 창 등)에서도 게임 자체는
    돌아가야 하므로 전부 try/catch로 감싼다.                                  */
 function load(k, fallback){
   try{ const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); }
@@ -489,6 +483,11 @@ function pointerSlot(rot){
   return -1;
 }
 
+/* 원판이 지금 돌아가 있는 각도. 여러 번 돌릴 수 있으므로 0으로 되돌리지 않고
+   멈춘 자리에서 이어서 굴린다. 0으로 튕겨 보내면 다음 사람이 누를 때
+   원판이 순간이동하는 게 보인다.                                           */
+let currentRot = 0;
+
 function spinTo(slotIndex, done){
   const seg = layout[slotIndex];
 
@@ -497,10 +496,19 @@ function spinTo(slotIndex, done){
      칸 밖으로 나가지 않도록 폭의 45%로 묶는다.                           */
   const settleIn = Math.min(seg.span * 0.45, 4 + Math.random() * 4);
   const target = seg.end - settleIn;                 // 바늘이 최종적으로 설 원판 위 각도
-  const finalRot = 360 * 7 + (360 - target);         // 일곱 바퀴 돌고 그 자리에
+  const base = 360 - target;                         // 그 자리에 세우는 각도 (360도 단위 무시)
+
+  /* 지금 각도에서 앞으로 더 굴려야 할 양 = 모자란 만큼 + 일곱 바퀴 */
+  const delta = (((base - currentRot) % 360) + 360) % 360 + 360 * 7;
+  const from = currentRot, to = currentRot + delta;
+
+  const settle = () => {
+    currentRot = to % 360;                           // 숫자가 무한히 커지지 않게 정리
+    wheelEl.style.transform = `rotate(${currentRot}deg)`;
+  };
 
   if (reduceMotion){                                 // 모션 최소화 설정이면 바로
-    wheelEl.style.transform = `rotate(${finalRot}deg)`;
+    settle();
     setTimeout(done, 400);
     return;
   }
@@ -513,11 +521,8 @@ function spinTo(slotIndex, done){
 
   function frame(now){
     const e = now - t0;
-    if (e >= T){
-      wheelEl.style.transform = `rotate(${finalRot}deg)`;
-      done(); return;
-    }
-    const rot = finalRot * easeOutQuart(e / T);
+    if (e >= T){ settle(); done(); return; }
+    const rot = from + delta * easeOutQuart(e / T);
     wheelEl.style.transform = `rotate(${rot}deg)`;
     const s = pointerSlot(rot);
     if (s !== lastSeg){ lastSeg = s; tick(); }       // 칸을 지날 때마다 따르륵
@@ -596,15 +601,14 @@ function showResult(record, celebrate){
   }
 }
 
-/* 이미 돌린 폰이면 시작 화면을 잠근다 */
-function lockSpent(record){
-  el('btnSpin').disabled = true;
-  el('btnSpin').textContent = '이미 뽑으셨습니다 🙌';
-  el('name').value = record.name;
-  el('name').disabled = true;
-  el('sub').textContent = '이 휴대폰에서는 이미 뽑으셨어요 🙌';
-  el('foot').innerHTML = '한 사람당 <b>한 번</b>만 돌릴 수 있어요 💗';
-  el('btnShowResult').hidden = false;
+/* 결과 화면을 닫고 다음 사람을 받을 준비 */
+function readyForNext(){
+  el('result').hidden = true;
+  el('name').value = '';
+  el('name').disabled = false;
+  el('btnSpin').disabled = false;
+  el('btnSpin').textContent = '돌리기 💫';
+  el('name').focus();
 }
 
 /* ---------- 9. 명절 테마 ------------------------------------------------------ */
@@ -633,46 +637,30 @@ el('btnMute').onclick = () => {
 el('btnMute').textContent = muted ? '🔇' : '🔊';
 
 el('btnSpin').onclick = () => {
-  if (spinning || load(KEY_RESULT, null)) return;
+  if (spinning) return;
   spinning = true;
   ctx();                                       // 첫 터치에 오디오를 깨운다
 
-  /* 결과를 먼저 정하고 곧바로 저장한다.
-     회전 도중 새로고침해서 다시 뽑는 꼼수를 막기 위해서다.                   */
   const slot   = pickSlot();
   const record = {
     name: el('name').value.trim() || '이번 차례',
     amount: AMOUNTS[slot],
     at: Date.now()
   };
-  save(KEY_RESULT, record);
 
   el('btnSpin').disabled = true;
+  el('btnSpin').textContent = '돌아가는 중 🌀';
   el('name').disabled = true;
 
   spinTo(slot, () => { spinning = false; showResult(record, true); });
 };
 
-el('btnClose').onclick = () => {
-  el('result').hidden = true;
-  lockSpent(load(KEY_RESULT, { name:'', amount:0, at:Date.now() }));
-};
-el('btnShowResult').onclick = () => {
-  const r = load(KEY_RESULT, null);
-  if (r) showResult(r, false);                 // 다시 볼 때는 축하 연출 없이
-};
+el('btnClose').onclick = readyForNext;
 
-/* 숨은 초기화 — 맨 아래 'Hayarobi'를 1.5초 꾹 누르면 버튼이 나타난다.
-   어른이 미리 시험해 본 뒤 기록을 지울 때 쓴다. 아이가 우연히 누를 일은 없다. */
-let holdTimer = null;
-const startHold = () => { holdTimer = setTimeout(() => { el('btnReset').hidden = false; }, 1500); };
-const endHold   = () => clearTimeout(holdTimer);
-['pointerdown'].forEach(ev => el('brand').addEventListener(ev, startHold));
-['pointerup','pointerleave','pointercancel'].forEach(ev => el('brand').addEventListener(ev, endHold));
-el('btnReset').onclick = () => {
-  try{ localStorage.removeItem(KEY_RESULT); }catch(e){}
-  location.reload();
-};
+/* 엔터를 쳐도 돌아간다 */
+el('name').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !el('btnSpin').disabled) el('btnSpin').click();
+});
 
 /* ---------- 시작 ------------------------------------------------------------- */
 let fest = load(KEY_FEST, null);
@@ -681,7 +669,4 @@ if (fest !== 'seollal' && fest !== 'chuseok'){
   fest = (month >= 1 && month <= 3) ? 'seollal' : 'chuseok';
 }
 applyFestival(fest);
-
-const saved = load(KEY_RESULT, null);
-if (saved){ lockSpent(saved); showResult(saved, false); }
 </script>
