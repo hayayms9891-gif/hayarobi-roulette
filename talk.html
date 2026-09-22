@@ -393,24 +393,26 @@ td.name{ font-family:inherit; }
 
   <!-- ─────────────────────────────────────────────── -->
   <section>
-    <p class="eyebrow">&lt;!DOCTYPE html&gt;</p>
-    <h2>한 줄이 빠져서 레이아웃이 통째로 무너진 사건</h2>
+    <p class="eyebrow">진단을 틀렸던 이야기</p>
+    <h2>원인을 잘못 짚었고, 재보고 나서 알았습니다</h2>
     <p>
-      폰에서 열어보니 내용이 위쪽 절반에만 몰리고 아래가 텅 비었습니다.
-      여백 설정을 아무리 만져도 그대로였습니다. 원인은 CSS가 아니었습니다.
+      폰에서 열어보니 내용이 위쪽 3분의 1에만 몰리고 아래가 텅 비었습니다.
+      파일을 열어보니 <span class="mono">&lt;!DOCTYPE html&gt;</span> 이 없었습니다.
+      원래 다른 게시 방식으로 만든 파일이라 <strong>문서 골격을 시스템이 자동으로 붙여주고
+      있었는데</strong>, GitHub Pages는 파일을 있는 그대로 내보내니 통째로 빠진 채 나간 겁니다.
     </p>
     <p>
-      이 파일은 원래 다른 게시 방식으로 만들어서 <strong>문서 골격을 시스템이 자동으로
-      붙여주고 있었고</strong>, GitHub Pages는 파일을 있는 그대로 내보내니 그게 통째로
-      빠진 채 나갔습니다. <span class="mono">&lt;!DOCTYPE html&gt;</span> 이 없으면 브라우저는
-      <strong>호환 모드(quirks mode)</strong> 로 읽고, 그러면
-      <span class="mono">html, body</span> 의 <span class="mono">height:100%</span> 가 풀립니다.
-      높이를 물려받을 기준이 사라지니 <span class="mono">min-height:100%</span> 도 0이 됩니다.
+      “DOCTYPE이 없으면 호환 모드로 읽히고, 그러면
+      <span class="mono">height:100%</span> 가 풀린다” — 그렇게 진단하고 고쳤더니 화면이 채워졌습니다.
+      <strong>그런데 나중에 실제로 재보니 그게 원인이 아니었습니다.</strong>
     </p>
 
     <div class="demo">
-      <h3>같은 CSS, DOCTYPE만 다름</h3>
-      <p class="hint">아래 두 틀은 내용과 스타일이 완전히 똑같습니다. 첫 줄 하나만 다릅니다.</p>
+      <h3>DOCTYPE만 빼고 같은 CSS — 정말 달라질까</h3>
+      <p class="hint">
+        두 틀은 내용과 스타일이 완전히 같고 첫 줄만 다릅니다.
+        <span class="mono">compatMode</span> 는 갈리는데, <strong>높이는 같습니다.</strong>
+      </p>
       <div class="framerow">
         <div class="framecell bad">
           <span class="tag">DOCTYPE 없음</span>
@@ -423,10 +425,49 @@ td.name{ font-family:inherit; }
           <p class="mode" id="modeGood">—</p>
         </div>
       </div>
+      <p class="caption" id="heightOut">측정 중…</p>
     </div>
 
     <p style="margin-top:26px">
-      고치고 난 뒤엔 세 가지를 얹어 화면을 채웠습니다.
+      진짜 원인은 두 가지가 겹친 것이었습니다.
+    </p>
+    <p>
+      <strong>하나, <span class="mono">viewport</span> 메타가 없었습니다.</strong>
+      그러면 모바일 브라우저는 폭을 <span class="mono">980px</span> 로 잡고 화면에 맞춰 축소합니다.
+      룰렛은 <span class="mono">min(82vw, 318px)</span> 이라 318px로 그려졌고,
+      <span class="mono">318 ÷ 980 ≈ 32%</span> — 스크린샷에서 룰렛이 차지한 비율과 정확히 맞습니다.
+      화면이 빈 게 아니라 <strong>전체가 3분의 1로 축소돼 있었던 것</strong>입니다.
+    </p>
+    <p>
+      <strong>둘, <span class="mono">.wrap</span> 에 <span class="mono">justify-content</span> 가 없었습니다.</strong>
+      세로 플렉스의 기본값은 <span class="mono">flex-start</span> 라, 내용이 화면 높이를 다 차지하고도
+      위에서부터 차곡차곡 쌓이고 나머지는 그냥 남습니다.
+    </p>
+
+    <div class="demo">
+      <h3>이게 진짜 원인이었습니다</h3>
+      <p class="hint">viewport 메타는 iframe으로 재현이 안 됩니다. 두 번째 원인만 나란히 놓았습니다.</p>
+      <div class="framerow">
+        <div class="framecell bad">
+          <span class="tag">flex-start (기본값)</span>
+          <iframe id="frameStart" title="justify-content 없는 경우"></iframe>
+          <p class="mode">위에서부터 쌓임</p>
+        </div>
+        <div class="framecell good">
+          <span class="tag">space-between</span>
+          <iframe id="frameBetween" title="space-between 적용"></iframe>
+          <p class="mode">남는 공간을 나눠 가짐</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:26px">
+      DOCTYPE은 빠져 있던 게 맞고 넣는 것도 맞지만, <strong>이번 증상의 원인은 아니었습니다.</strong>
+      한 번에 여러 개를 고치면 무엇이 들었는지 알 수 없다는 걸 다시 배웠습니다.
+    </p>
+
+    <p style="margin-top:26px">
+      고치면서 세 가지를 얹었습니다.
       <span class="mono">100dvh</span> 는 카톡 내장 브라우저에서 주소창이 접혔다 펴져도
       실제 보이는 높이를 따라가고, <span class="mono">space-between</span> 이 남는 세로 공간을
       덩어리 사이로 나누고, <span class="mono">vh</span> 기반
@@ -447,12 +488,17 @@ td.name{ font-family:inherit; }
   <!-- ─────────────────────────────────────────────── -->
   <section>
     <p class="eyebrow">정리</p>
-    <h2>네 번 다 “더 만들기”가 아니라 “덜 만들기”였습니다</h2>
+    <h2>앞의 셋은 덜 만들어서, 마지막은 재보고서 풀렸습니다</h2>
     <p>
       확률은 가중치 표를 <strong>없애서</strong>, 아슬아슬함은 연출 단계를
-      <strong>없애서</strong>, 효과음은 음원 파일을 <strong>없애서</strong>,
-      레이아웃은 빠진 한 줄을 <strong>되찾아서</strong> 해결됐습니다.
+      <strong>없애서</strong>, 효과음은 음원 파일을 <strong>없애서</strong> 해결됐습니다.
       코드가 줄면서 오히려 정확해진 경우들입니다.
+    </p>
+    <p>
+      레이아웃만은 달랐습니다. 눈에 띄게 빠진 <span class="mono">&lt;!DOCTYPE&gt;</span> 을 보고
+      바로 원인이라 단정했고, 여러 개를 한꺼번에 고치니 증상이 사라져 그게 맞는 줄 알았습니다.
+      <strong>나중에 두 경우의 높이를 실제로 재보고 나서야 아니라는 걸 알았습니다.</strong>
+      그럴듯한 원인과 진짜 원인은 다를 수 있고, 그 차이는 재봐야만 드러납니다.
     </p>
 
     <div class="links">
@@ -736,21 +782,40 @@ body{font:13px/1.5 sans-serif;background:#FFF1F6;color:#4A2C22}
   <div class="cap">하야로비</div>
 </div>`;
 
-el('frameBad').srcdoc  = INNER;                      // DOCTYPE 없음 → 호환 모드
-el('frameGood').srcdoc = '<!DOCTYPE html>' + INNER;  // 있음 → 표준 모드
+/* srcdoc 은 쓸 수 없다 — 규격상 srcdoc 문서는 DOCTYPE과 무관하게
+   항상 표준 모드라서, 정작 보여주려는 차이가 안 나온다.
+   빈 iframe에 document.write 로 직접 써 넣으면 DOCTYPE이 제대로 반영된다. */
+function paint(frameId, outId, html){
+  const f = el(frameId), out = outId ? el(outId) : null;
+  let d = null;
+  try{ d = f.contentDocument; }catch(e){}
+  if (!d){ if (out) out.textContent = '이 브라우저에서는 띄울 수 없습니다'; return null; }
+  d.open(); d.write(html); d.close();
 
-function readMode(frameId, outId){
-  const f = el(frameId);
-  f.addEventListener('load', () => {
+  if (out){
     let m = '?';
     try{ m = f.contentDocument.compatMode; }catch(e){}
-    el(outId).textContent = m === 'CSS1Compat'
-      ? 'compatMode: CSS1Compat (표준)'
-      : 'compatMode: BackCompat (호환)';
-  });
+    out.textContent = m === 'CSS1Compat' ? 'compatMode: CSS1Compat (표준)'
+                    : m === 'BackCompat' ? 'compatMode: BackCompat (호환)'
+                    : 'compatMode: ' + m;
+  }
+  const w = d.querySelector('.wrap');
+  return w ? w.getBoundingClientRect().height : null;   // 높이를 돌려준다
 }
-readMode('frameBad',  'modeBad');
-readMode('frameGood', 'modeGood');
+const hBad  = paint('frameBad',  'modeBad',  INNER);
+const hGood = paint('frameGood', 'modeGood', '<!DOCTYPE html>' + INNER);
+
+/* 높이를 실제로 재서 보여준다 — 주장이 아니라 측정값이다 */
+el('heightOut').textContent = (hBad && hGood)
+  ? (Math.abs(hBad - hGood) < 1
+      ? `측정: 내용 높이 ${Math.round(hBad)}px vs ${Math.round(hGood)}px — 같습니다. DOCTYPE은 이 레이아웃을 바꾸지 않습니다.`
+      : `측정: 내용 높이 ${Math.round(hBad)}px vs ${Math.round(hGood)}px — 다릅니다.`)
+  : '이 브라우저에서는 높이를 잴 수 없습니다';
+
+/* 진짜 원인 — justify-content 유무 */
+const FLEX = jc => INNER.replace('justify-content:space-between;', 'justify-content:' + jc + ';');
+paint('frameStart',   null, '<!DOCTYPE html>' + FLEX('flex-start'));
+paint('frameBetween', null, '<!DOCTYPE html>' + FLEX('space-between'));
 
 /* ══ 테마 ════════════════════════════════════════════════════════ */
 const root = document.documentElement;
