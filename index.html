@@ -275,8 +275,8 @@ body{
   </div>
 
   <p class="foot" id="foot">
-    꽝 · 1천 · 5천 · 1만 · 2만 · 5만 <b>각 2칸</b> 🎯<br>
-    칸 크기와 상관없이 <b>확률은 모두 12분의 1</b>이에요 💡
+    <b>보이는 칸 크기가 곧 확률</b>이에요 — 넓을수록 잘 나와요 💡<br>
+    꽝 25.8% · 1천 22.5% · 5천 19.2% · 1만 15.8% · 2만 10.3% · <b>5만 6.3%</b>
   </p>
 
   <div class="brand">
@@ -317,11 +317,11 @@ body{
 const AMOUNTS = [0, 1000, 5000, 10000, 20000, 50000,
                  0, 1000, 5000, 10000, 20000, 50000];
 
-/* 칸을 "그리는 너비". 확률과는 무관하고 순전히 보이는 크기다.
-   고액일수록 좁게 그려서 아슬아슬해 보이게 만든다.
-   합이 정확히 12가 되도록 맞춰 뒀다 (→ 1단위 = 30도).
-   실제 당첨은 아래 pickSlot()이 12칸을 균등하게 뽑는다. 즉 좁아 보이는 칸도
-   확률은 똑같이 1/12 — 보이는 것보다 후한 룰렛인 셈이다.                  */
+/* 칸의 너비. 고액일수록 좁다. 합이 정확히 12가 되도록 맞춰 뒀다 (1단위 = 30도).
+   이 너비가 곧 당첨 확률이다 — 아래 pickSlot()이 원판 위 각도를 무작위로
+   찍는 방식이라, 넓은 칸이 그 비율만큼 잘 나온다. 보이는 그대로다.
+   금액별 확률: 꽝 25.83% · 1천 22.5% · 5천 19.17%
+               1만 15.83% · 2만 10.33% · 5만 6.33%  (1인 기댓값 8,000원)  */
 const WIDTH = { 0:1.55, 1000:1.35, 5000:1.15, 10000:0.95, 20000:0.62, 50000:0.38 };
 
 /* ink 는 칸 위에 얹는 글자색. 연한 칸은 갈색, 진한 핫핑크 칸은 흰색으로
@@ -359,21 +359,18 @@ function load(k, fallback){
 }
 function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 
-/* ---------- 3. 공정한 난수 ---------------------------------------------------
-   crypto.getRandomValues 는 0 ~ 2^32-1 을 준다. 이를 그냥 12로 나눈 나머지를
-   쓰면 앞쪽 번호가 아주 미세하게 더 자주 나온다(모듈로 편향).
-   범위를 12의 배수로 잘라내고 넘치는 값은 버려서 편향을 없앴다.             */
-function randomBelow(n){
+/* ---------- 3. 난수 ----------------------------------------------------------
+   0 이상 1 미만의 실수를 균등하게 뽑는다. crypto.getRandomValues 가 주는
+   0 ~ 2^32-1 을 2^32로 나누면 된다. 나머지 연산을 쓰지 않으므로
+   특정 값이 더 자주 나오는 모듈로 편향이 애초에 생기지 않는다.             */
+function random01(){
   const g = window.crypto && window.crypto.getRandomValues
           ? window.crypto.getRandomValues.bind(window.crypto) : null;
-  if (!g) return Math.floor(Math.random() * n);        // 아주 옛 브라우저 대비
-  const limit = Math.floor(0x100000000 / n) * n;       // 12의 배수로 자른 상한
+  if (!g) return Math.random();                        // 아주 옛 브라우저 대비
   const buf = new Uint32Array(1);
-  let v;
-  do { g(buf); v = buf[0]; } while (v >= limit);       // 상한을 넘으면 다시 뽑는다
-  return v % n;
+  g(buf);
+  return buf[0] / 0x100000000;                         // [0, 1)
 }
-const pickSlot = () => randomBelow(AMOUNTS.length);
 
 /* ---------- 4. 룰렛 그리기 --------------------------------------------------
    viewBox 200x200, 중심 (100,100). 각도는 12시가 0도이고 시계방향으로 증가한다
@@ -391,6 +388,16 @@ const layout = [];                   // [{index, amount, start, end, mid, span}]
     cursor += span;
   });
 })();
+
+/* 당첨 칸 고르기.
+   원판 위의 각도 하나를 0~360도에서 균등하게 찍고, 그 각도가 속한 칸을 준다.
+   그래서 당첨 확률이 칸의 넓이와 정확히 같아진다 — 넓은 꽝은 자주,
+   좁은 5만원은 드물게. 화면에 보이는 크기가 곧 확률이다.                  */
+function pickSlot(){
+  const a = random01() * 360;
+  for (const s of layout) if (a >= s.start && a < s.end) return s.index;
+  return layout.length - 1;                      // 부동소수점 끝자락 대비
+}
 
 function polar(r, deg){
   const a = (deg - 90) * Math.PI / 180;          // -90: 0도를 12시 방향으로
