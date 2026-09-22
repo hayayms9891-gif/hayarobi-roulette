@@ -115,6 +115,7 @@ body{
 
 /* ---------- 상단 바 ---------- */
 .topbar{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.topbtns{ display:flex; gap:7px; flex:0 0 auto; }
 .segmented{ display:flex; padding:3px; gap:3px; background:rgba(255,255,255,.85);
             border:1px solid var(--line); border-radius:999px;
             box-shadow:0 2px 10px rgba(238,92,130,.13); }
@@ -274,6 +275,53 @@ body{
 .stamp strong{ color:var(--ink); font-weight:400; }
 #btnClose{ max-width:258px; font-size:18px; }
 
+/* ---------- QR + 링크 화면 ---------- */
+#qrView{
+  position:fixed; inset:0; z-index:7;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(9px,1.6vh,16px);
+  padding:calc(env(safe-area-inset-top,0px)    + clamp(16px,2.6vh,28px)) 20px
+          calc(env(safe-area-inset-bottom,0px) + clamp(16px,2.6vh,28px));
+  background:
+    radial-gradient(84% 48% at 50% 34%, color-mix(in srgb,var(--pink) 15%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 44%, var(--bg-bot) 100%);
+  background-color:var(--bg-mid);
+  overflow-y:auto; text-align:center;
+}
+#qrView[hidden]{ display:none; }
+.qr-title{ font-family:"Jua",sans-serif; font-size:clamp(20px,3vh,27px); color:var(--pink); margin:0; }
+.qr-lead{ font-size:clamp(12px,1.7vh,15px); color:var(--ink-dim); margin:0; }
+
+/* QR은 흰 여백이 넉넉해야 카메라가 잘 읽는다 */
+.qr-card{
+  position:relative; background:#fff; border-radius:22px;
+  padding:clamp(10px,1.4vh,15px);
+  box-shadow:0 12px 28px rgba(224,110,145,.26);
+  width:min(68vw,34vh,270px); aspect-ratio:1; flex:0 0 auto;
+}
+.qr-card > img{ display:block; width:100%; height:100%; }
+/* 가운데 하야로비 — 오류정정 H(30%)라 이 정도 가려도 읽힌다 */
+.qr-badge{
+  position:absolute; left:50%; top:50%; translate:-50% -50%;
+  width:21%; aspect-ratio:1; border-radius:50%; background:#fff; padding:3px;
+  box-shadow:0 2px 8px rgba(224,110,145,.22);
+}
+.qr-badge img{ display:block; width:100%; height:100%; border-radius:50%; object-fit:cover; }
+
+.qr-url{
+  font-size:clamp(11px,1.5vh,13px); color:var(--ink); word-break:break-all;
+  max-width:26em; margin:0; line-height:1.6;
+  background:#fff; border:1px solid var(--pink-pale); border-radius:12px;
+  padding:10px 14px;
+}
+.qr-actions{ width:100%; max-width:300px; display:flex; flex-direction:column; gap:8px; }
+.cta.ghost{
+  background:#fff; color:var(--pink); border:1.5px solid var(--pink-pale);
+  text-shadow:none; box-shadow:0 3px 0 var(--pink-pale),0 8px 16px rgba(224,110,145,.16);
+  font-size:clamp(16px,2.2vh,19px);
+}
+.cta.ghost:active{ box-shadow:0 1px 0 var(--pink-pale),0 5px 10px rgba(224,110,145,.14); }
+
 #confetti{ position:fixed; inset:0; pointer-events:none; z-index:6; }
 
 @keyframes pop{ from{ transform:scale(.7); opacity:0 } to{ transform:scale(1); opacity:1 } }
@@ -306,7 +354,10 @@ body{
       <button type="button" id="btnSeol" aria-pressed="true">설날 🧧</button>
       <button type="button" id="btnChuseok" aria-pressed="false">추석 🌕</button>
     </div>
-    <button type="button" class="iconbtn" id="btnMute" aria-label="소리 끄기">🔊</button>
+    <div class="topbtns">
+      <button type="button" class="iconbtn" id="btnQr" aria-label="QR 코드와 링크 보기">📱</button>
+      <button type="button" class="iconbtn" id="btnMute" aria-label="소리 끄기">🔊</button>
+    </div>
   </div>
 
   <div class="hero">
@@ -338,6 +389,22 @@ body{
     <span class="sig">AI커뮤니티랩 하야로비 💖</span><br>
     AI 인재와 지역을 연결하는 AI 협업 플랫폼 ✨
   </p>
+</div>
+
+<div id="qrView" hidden>
+  <p class="qr-title">같이 하고 싶은 사람에게 📲</p>
+  <div class="qr-card">
+    <img src="qr.svg" alt="명절 용돈 룰렛 QR 코드" width="980" height="980" decoding="async">
+    <div class="qr-badge">
+      <img src="hayarobi.webp" alt="" width="1254" height="1254" decoding="async">
+    </div>
+  </div>
+  <p class="qr-lead">카메라로 찍으면 바로 열려요 📸</p>
+  <p class="qr-url" id="qrUrl"></p>
+  <div class="qr-actions">
+    <button type="button" class="cta" id="btnCopy">링크 복사 📋</button>
+    <button type="button" class="cta ghost" id="btnQrClose">닫기</button>
+  </div>
 </div>
 
 <canvas id="confetti" hidden></canvas>
@@ -725,6 +792,30 @@ el('btnSpin').onclick = () => {
 };
 
 el('btnClose').onclick = readyForNext;
+
+/* ---------- QR + 링크 ----------
+   주소는 하드코딩하지 않고 지금 열려 있는 주소에서 가져온다.
+   (?v=1 같은 물음표 뒤와 # 뒤는 떼어낸다)                                  */
+const shareUrl = location.origin + location.pathname;
+el('qrUrl').textContent = shareUrl;
+
+el('btnQr').onclick      = () => { el('qrView').hidden = false; };
+el('btnQrClose').onclick = () => { el('qrView').hidden = true; el('btnCopy').textContent = '링크 복사 📋'; };
+
+el('btnCopy').onclick = async () => {
+  const btn = el('btnCopy');
+  try{
+    await navigator.clipboard.writeText(shareUrl);
+    btn.textContent = '복사했어요 ✅';
+  }catch(e){
+    /* 클립보드가 막힌 브라우저에서는 주소를 직접 선택해 준다 */
+    const r = document.createRange();
+    r.selectNodeContents(el('qrUrl'));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    btn.textContent = '길게 눌러 복사하세요 👆';
+  }
+  setTimeout(() => { btn.textContent = '링크 복사 📋'; }, 2200);
+};
 
 /* 엔터를 쳐도 돌아간다 */
 el('name').addEventListener('keydown', e => {
