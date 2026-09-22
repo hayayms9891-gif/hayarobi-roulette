@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF1F6">
+<meta name="description" content="명절 용돈 룰렛 QR 코드 — AI커뮤니티랩 하야로비">
+<title>용돈 룰렛 QR</title>
+<link rel="icon" href="hayarobi.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+
+<style>
+/* 명절 용돈 룰렛 QR — 게임 화면과 같은 하야로비 색을 쓴다.
+   명절에 모여 있을 때 폰이나 노트북에 띄워두면 각자 찍어서 들어온다. */
+:root{
+  color-scheme: light;
+  --bg-top:#FFF1F6;
+  --bg-mid:#FEF6F8;
+  --bg-bot:#FBE4EC;
+  --ink:#4A2C22;
+  --ink-dim:#A98A83;
+  --pink:#EE5C82;
+  --pink-pale:#FBD0DC;
+}
+html,body{ height:100%; }
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  background:
+    radial-gradient(140% 58% at 50% 104%, rgba(247,155,180,.28) 0%, transparent 62%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+  background-color:var(--bg-mid);
+  color:var(--ink);
+  font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.page{
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(12px,2.2vh,22px);
+  padding-inline:20px;
+  padding-block:calc(env(safe-area-inset-top,0px)    + clamp(16px,3vh,32px))
+                calc(env(safe-area-inset-bottom,0px) + clamp(16px,3vh,32px));
+  max-width:560px; margin-inline:auto; text-align:center;
+}
+
+h1{ font-family:"Jua",sans-serif; font-weight:400; margin:0;
+    font-size:clamp(26px,4.6vh,40px); line-height:1.15; color:var(--pink);
+    text-shadow:0 2px 0 rgba(255,255,255,.9); }
+.lead{ margin:0; font-size:clamp(13px,1.9vh,16px); color:var(--ink-dim); }
+
+/* QR 카드 — 흰 바탕을 넉넉히 둬야 카메라가 잘 읽는다 */
+.card{
+  position:relative; background:#fff; border-radius:26px;
+  padding:clamp(12px,1.8vh,18px);
+  box-shadow:0 14px 34px rgba(224,110,145,.26);
+  width:min(78vw,44vh,330px); aspect-ratio:1; flex:0 0 auto;
+}
+.card img.qr{ display:block; width:100%; height:100%; }
+
+/* 가운데 하야로비 — 오류정정 H(30%)라 이 정도는 가려도 읽힌다 */
+.badge{
+  position:absolute; left:50%; top:50%; translate:-50% -50%;
+  width:21%; aspect-ratio:1; border-radius:50%;
+  background:#fff; padding:3px;
+  box-shadow:0 2px 8px rgba(224,110,145,.22);
+}
+.badge img{ display:block; width:100%; height:100%; border-radius:50%; object-fit:cover; }
+
+.url{
+  font-size:clamp(11px,1.6vh,13px); color:var(--ink-dim);
+  word-break:break-all; max-width:30em; margin:0; line-height:1.6;
+}
+.sig{ font-family:"Jua",sans-serif; font-size:clamp(15px,2.1vh,19px); color:var(--pink); margin:0; }
+.sub{ font-size:clamp(11px,1.5vh,13px); color:var(--ink-dim); margin:0; }
+
+/* 인쇄할 때는 배경과 그림자를 빼고 QR만 크고 선명하게 */
+@media print{
+  body{ background:#fff; }
+  .page{ min-height:auto; gap:16px; padding:24px; }
+  .card{ box-shadow:none; border:1px solid #eee; width:78mm; }
+  .lead{ color:#666; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <h1>명절 용돈 룰렛 🎀</h1>
+  <p class="lead">카메라로 찍으면 바로 열려요 📸</p>
+
+  <div class="card">
+    <img class="qr" src="qr.svg" alt="명절 용돈 룰렛 QR 코드" width="980" height="980">
+    <div class="badge">
+      <img src="hayarobi.webp" alt="" width="1254" height="1254" decoding="async">
+    </div>
+  </div>
+
+  <p class="url">https://hayayms9891-gif.github.io/hayarobi-roulette/</p>
+
+  <div>
+    <p class="sig">AI커뮤니티랩 하야로비 💖</p>
+    <p class="sub">AI 인재와 지역을 연결하는 AI 협업 플랫폼 ✨</p>
+  </div>
+</div>
+
+</body>
+</html>
