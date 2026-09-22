@@ -110,6 +110,23 @@ body{
   border-radius:999px; cursor:pointer; box-shadow:0 2px 10px rgba(238,92,130,.13);
 }
 
+/* ---------- 하야로비 ----------
+   로고는 정사각형 안에 원형 배지가 꽉 차 있어서, border-radius 50%로
+   자르면 흰 모서리만 정확히 떨어져 나가고 분홍 테두리는 그대로 남는다. */
+.logo{
+  display:block; width:88px; height:88px; flex:0 0 auto;
+  border-radius:50%; object-fit:cover; background:#fff;
+  box-shadow:0 6px 18px rgba(238,92,130,.30);
+}
+.logo.small{ width:64px; height:64px; box-shadow:0 5px 14px rgba(238,92,130,.26); }
+@keyframes hop{
+  0%,100%{ transform:translateY(0) rotate(0deg) }
+  28%    { transform:translateY(-11px) rotate(-7deg) }
+  58%    { transform:translateY(0) rotate(5deg) }
+  80%    { transform:translateY(-4px) rotate(-2deg) }
+}
+.logo.hop{ animation:hop .7s ease; }
+
 /* ---------- 인사말 ---------- */
 .greeting{ text-align:center; }
 .greeting .eyebrow{ font-size:14px; letter-spacing:.03em; color:var(--accent); margin:0 0 3px; }
@@ -159,12 +176,6 @@ body{
 
 .foot{ font-size:12px; color:var(--ink-dim); text-align:center; line-height:1.8; margin:0; }
 .foot b{ color:var(--pink); font-weight:400; }
-
-/* ---------- 하야로비 서명 ---------- */
-.brand{ margin-top:2px; text-align:center; line-height:1.35;
-        user-select:none; -webkit-user-select:none; cursor:default; }
-.brand .lab{ font-size:11px; letter-spacing:.04em; color:var(--ink); opacity:.75; margin:0; }
-.brand .name{ font-family:"Jua",sans-serif; font-weight:400; font-size:20px; color:var(--pink); margin:0; }
 
 /* ---------- 결과 화면 ---------- */
 #result{
@@ -225,7 +236,7 @@ body{
 @keyframes pop{ from{ transform:scale(.7); opacity:0 } to{ transform:scale(1); opacity:1 } }
 .pop{ animation:pop .45s cubic-bezier(.2,1.5,.4,1) both; }
 @media (prefers-reduced-motion:reduce){
-  .pop,.deco{ animation:none; }
+  .pop,.deco,.logo.hop{ animation:none; }
   .env.open .env-flap{ animation:none; transform:rotateX(-172deg); }
   .env.open .env-bill{ animation:none; transform:translateY(-56px); }
   .cta{ transition:none; }
@@ -253,6 +264,9 @@ body{
     <button type="button" class="iconbtn" id="btnMute" aria-label="소리 끄기">🔊</button>
   </div>
 
+  <img class="logo" id="logo" src="hayarobi.webp" width="1254" height="1254"
+       alt="AI Community Lab Hayarobi" decoding="async">
+
   <div class="greeting">
     <p class="eyebrow" id="eyebrow">새해 복 많이 받으세요 🧧</p>
     <h1>용돈 룰렛 🎀</h1>
@@ -278,16 +292,13 @@ body{
     <b>보이는 칸 크기가 곧 확률</b>이에요 — 넓을수록 잘 나와요 💡<br>
     꽝 25.8% · 1천 22.5% · 5천 19.2% · 1만 15.8% · 2만 10.3% · <b>5만 6.3%</b>
   </p>
-
-  <div class="brand">
-    <p class="lab">AI Community Lab</p>
-    <p class="name">Hayarobi 💖</p>
-  </div>
 </div>
 
 <canvas id="confetti" hidden></canvas>
 
 <div id="result" hidden>
+  <img class="logo small" src="hayarobi.webp" width="1254" height="1254"
+       alt="AI Community Lab Hayarobi" decoding="async">
   <div class="env" id="env">
     <div class="env-back"></div>
     <div class="env-bill" id="envBill">💵</div>
@@ -658,6 +669,11 @@ el('btnSpin').onclick = () => {
   el('btnSpin').disabled = true;
   el('btnSpin').textContent = '돌아가는 중 🌀';
   el('name').disabled = true;
+
+  const logo = el('logo');                     // 하야로비가 폴짝 뛴다
+  logo.classList.remove('hop');
+  void logo.offsetWidth;                       // 애니메이션 재시작용 리플로우
+  logo.classList.add('hop');
 
   spinTo(slot, () => { spinning = false; showResult(record, true); });
 };
