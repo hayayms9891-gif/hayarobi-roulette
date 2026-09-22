@@ -164,6 +164,11 @@ body{
 /* ---------- 룰렛 ---------- */
 /* 가로가 좁은 폰에서는 너비가, 세로가 짧은 폰에서는 높이가 기준이 된다. */
 .stage{ position:relative; width:min(84vw,40vh,360px); aspect-ratio:1; max-width:100%; }
+/* 세로가 짧은 구형 폰(360×640 등)에서는 룰렛을 조금 더 줄여
+   아래 여백까지 한 화면에 들어오게 한다. */
+@media (max-height:660px){
+  .stage{ width:min(84vw,36.5vh,360px); }
+}
 .stage::before{                                  /* 로고처럼 하얀 원 후광 */
   content:""; position:absolute; inset:-14px; border-radius:50%;
   background:radial-gradient(circle, rgba(255,255,255,.92) 55%, rgba(255,255,255,0) 72%);
