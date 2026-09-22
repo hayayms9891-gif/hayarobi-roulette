@@ -58,8 +58,9 @@ AI Community Lab **Hayarobi** — 설날·추석 용돈 뽑기 룰렛
 |---|---|
 | [docs/MVP.md](docs/MVP.md) | 무엇을 넣고 무엇을 왜 뺐는지, 확정 스펙, 완료 기준 |
 | [docs/흐름도.md](docs/흐름도.md) | 사용자 흐름 · 화면 상태 · 내부 순서 (그림) |
+| [docs/블로그-소개글.md](docs/블로그-소개글.md) | 블로그에 올릴 소개 글 |
 | [docs/README.md](docs/README.md) | 문서 모음 안내 |
 
 ## 실행
 
-두 파일을 같은 폴더에 두고 `index.html`을 브라우저로 열면 됩니다.
+`index.html`을 브라우저로 열면 됩니다. 로고(`hayarobi.webp`)와 QR(`qr.svg`)이 같은 폴더에 있어야 이미지가 보입니다.
