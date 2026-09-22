@@ -1,0 +1,687 @@
+<title>명절 용돈 룰렛</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap">
+
+<style>
+/* =========================================================================
+   명절 용돈 룰렛 — AI Community Lab Hayarobi
+   - 링크를 받은 사람이 각자 휴대폰에서 딱 한 번 돌린다.
+   - 색감은 하야로비 로고에서 그대로 가져왔다.
+     연분홍 바탕 / 핫핑크 / 라벤더 반짝이 / 살구 / 하늘 / 세일러복 남색.
+   - 밝은 분홍이라는 하나의 세계관에 의도적으로 고정한 단일 테마라서
+     라이트/다크 전환 없이 배경과 글자색을 전부 직접 칠한다.
+   ========================================================================= */
+:root{
+  color-scheme: light;
+
+  /* 바탕과 글씨 */
+  --bg-top:#FFF1F6;
+  --bg-mid:#FEF6F8;
+  --bg-bot:#FBE4EC;
+  --card:#FFFFFF;
+  --ink:#4A2C22;             /* 로고의 'AI Community Lab' 갈색 */
+  --ink-dim:#A98A83;
+  --line:rgba(238,92,130,.20);
+
+  /* 로고 핑크 */
+  --pink:#EE5C82;            /* Hayarobi 글자색 */
+  --pink-soft:#F79BB4;
+  --pink-pale:#FBD0DC;
+  --lavender:#B490DC;
+  --navy:#2A3A5E;            /* 세일러복 */
+
+  /* 금액별 색 */
+  --c-0:#DCC9D1;             /* 꽝  : 연회분홍 */
+  --c-1000:#A9CCE8;          /* 1천 : 하늘 */
+  --c-5000:#BCA9E4;          /* 5천 : 라벤더 */
+  --c-10000:#F8C0A0;         /* 1만 : 살구 */
+  --c-20000:#F58FAC;         /* 2만 : 핑크 */
+  --c-50000:#EE5C82;         /* 5만 : 핫핑크 */
+
+  --env:#EE5C82;             /* 세뱃돈 봉투 */
+  --btn-a:#FBA9C0;
+  --btn-b:#F2789D;
+  --btn-c:#DB4F78;
+
+  /* 명절별 강조색 — 설날 기본 */
+  --accent:#EE5C82;
+  --on-accent:#FFF4F7;
+}
+:root[data-fest="chuseok"]{
+  --accent:#B490DC;
+  --on-accent:#FBF6FF;
+}
+
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:
+    radial-gradient(140% 58% at 50% 104%, rgba(247,155,180,.30) 0%, transparent 62%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+  background-color:var(--bg-mid);
+  color:var(--ink);
+  font-family:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+*{ box-sizing:border-box; }
+
+/* ---------- 배경 : 분홍 번짐 + 떠다니는 이모지 ---------- */
+#scenery{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+#scenery > *{ position:absolute; }
+.wash{ border-radius:50%; filter:blur(42px); }
+.wash.w1{ width:270px; height:210px; top:-56px; left:-80px; background:rgba(247,155,180,.42); }
+.wash.w2{ width:240px; height:190px; bottom:-60px; right:-70px; background:rgba(180,144,220,.30); }
+.wash.w3{ width:200px; height:160px; top:40%; right:-86px; background:rgba(251,208,220,.55); }
+
+.deco{ font-size:22px; opacity:.55; animation:bob 5.5s ease-in-out infinite; }
+.deco.d1{ top:8%;  left:7%;  font-size:26px; animation-delay:0s; }
+.deco.d2{ top:20%; right:9%; font-size:19px; animation-delay:.9s; }
+.deco.d3{ top:46%; left:5%;  font-size:17px; animation-delay:1.8s; }
+.deco.d4{ bottom:22%; right:7%; font-size:24px; animation-delay:2.6s; }
+.deco.d5{ bottom:9%;  left:11%; font-size:20px; animation-delay:3.4s; }
+.deco.d6{ top:33%; right:4%;  font-size:15px; animation-delay:4.2s; }
+@keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-4deg) } 50%{ transform:translateY(-12px) rotate(5deg) } }
+
+.wrap{
+  position:relative; z-index:1;
+  min-height:100%;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  padding-inline:16px; padding-block:12px 26px;
+  max-width:440px; margin-inline:auto;
+}
+
+/* ---------- 상단 바 ---------- */
+.topbar{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.segmented{ display:flex; padding:3px; gap:3px; background:rgba(255,255,255,.85);
+            border:1px solid var(--line); border-radius:999px;
+            box-shadow:0 2px 10px rgba(238,92,130,.13); }
+.segmented button{
+  font:inherit; font-size:13px; color:var(--ink-dim);
+  background:transparent; border:0; cursor:pointer; padding:7px 15px; border-radius:999px;
+  transition:background .18s ease,color .18s ease;
+}
+.segmented button[aria-pressed="true"]{ background:var(--accent); color:var(--on-accent); }
+.segmented button:focus-visible,.iconbtn:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.iconbtn{
+  width:40px; height:40px; flex:0 0 auto; display:grid; place-items:center;
+  font-size:17px; line-height:1; color:var(--ink-dim);
+  background:rgba(255,255,255,.85); border:1px solid var(--line);
+  border-radius:999px; cursor:pointer; box-shadow:0 2px 10px rgba(238,92,130,.13);
+}
+
+/* ---------- 인사말 ---------- */
+.greeting{ text-align:center; }
+.greeting .eyebrow{ font-size:14px; letter-spacing:.03em; color:var(--accent); margin:0 0 3px; }
+.greeting h1{ font-family:"Jua",sans-serif; font-weight:400; font-size:clamp(28px,9vw,36px);
+              line-height:1.14; margin:0; color:var(--pink); text-wrap:balance;
+              text-shadow:0 2px 0 rgba(255,255,255,.9); }
+.greeting p{ margin:6px 0 0; font-size:13px; color:var(--ink-dim); }
+
+/* ---------- 룰렛 ---------- */
+.stage{ position:relative; width:min(82vw,318px); aspect-ratio:1; max-width:100%; }
+.stage::before{                                  /* 로고처럼 하얀 원 후광 */
+  content:""; position:absolute; inset:-14px; border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.92) 55%, rgba(255,255,255,0) 72%);
+}
+/* 휠과 바늘은 같은 .stage 안의 svg지만 크기 규칙이 완전히 다르다.
+   `.stage svg` 같은 공통 셀렉터로 묶으면 바늘까지 휠 크기가 되어 버리므로
+   각각 자기 셀렉터로만 크기를 지정한다. */
+#wheel{ display:block; position:relative; width:100%; height:100%; transform-origin:50% 50%;
+        filter:drop-shadow(0 12px 22px rgba(224,110,145,.30)); }
+.pointer{ display:block; position:absolute; top:-9px; left:50%; translate:-50% 0;
+          width:28px; height:34px; z-index:2; filter:drop-shadow(0 3px 4px rgba(224,110,145,.45)); }
+
+/* ---------- 입력 + 버튼 ---------- */
+.controls{ width:100%; max-width:328px; display:flex; flex-direction:column; gap:10px; }
+#name{
+  font:inherit; font-size:17px; text-align:center; color:var(--ink);
+  background:#fff; border:1.5px solid var(--pink-pale);
+  border-radius:14px; padding:14px 16px; width:100%;
+  box-shadow:0 2px 10px rgba(238,92,130,.10);
+}
+#name::placeholder{ color:var(--ink-dim); }
+#name:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+#name:disabled{ opacity:.55; }
+
+.cta{
+  font-family:"Jua",sans-serif; font-weight:400; font-size:21px; letter-spacing:.03em;
+  color:#fff;
+  background:linear-gradient(180deg,var(--btn-a) 0%,var(--btn-b) 48%,var(--btn-c) 100%);
+  border:0; border-radius:16px; padding:16px 20px; width:100%; cursor:pointer;
+  text-shadow:0 1px 2px rgba(150,40,75,.28);
+  box-shadow:0 6px 0 #C13E66,0 12px 22px rgba(224,110,145,.35);
+  transition:transform .09s ease,box-shadow .09s ease;
+}
+.cta:active{ transform:translateY(4px); box-shadow:0 2px 0 #C13E66,0 7px 14px rgba(224,110,145,.3); }
+.cta:disabled{ opacity:.52; cursor:default; transform:none; box-shadow:0 6px 0 #C13E66; }
+.cta:focus-visible{ outline:3px solid var(--ink); outline-offset:3px; }
+
+.foot{ font-size:12px; color:var(--ink-dim); text-align:center; line-height:1.8; margin:0; }
+.foot b{ color:var(--pink); font-weight:400; }
+.linkish{ font:inherit; font-size:12px; color:var(--ink-dim); background:none; border:0;
+          text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:5px; }
+
+/* ---------- 하야로비 서명 ---------- */
+.brand{ margin-top:2px; text-align:center; line-height:1.35;
+        user-select:none; -webkit-user-select:none; cursor:default; }
+.brand .lab{ font-size:11px; letter-spacing:.04em; color:var(--ink); opacity:.75; margin:0; }
+.brand .name{ font-family:"Jua",sans-serif; font-weight:400; font-size:20px; color:var(--pink); margin:0; }
+
+/* ---------- 결과 화면 ---------- */
+#result{
+  position:fixed; inset:0; z-index:5;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:13px;
+  padding:calc(18px + env(safe-area-inset-top,0px)) 20px calc(18px + env(safe-area-inset-bottom,0px));
+  background:
+    radial-gradient(84% 48% at 50% 34%, color-mix(in srgb,var(--accent) 20%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 44%, var(--bg-bot) 100%);
+  background-color:var(--bg-mid);
+  overflow-y:auto; text-align:center;
+}
+#result[hidden]{ display:none; }
+
+/* 세뱃돈 봉투 열리는 세리머니 */
+.env{ position:relative; width:148px; height:96px; flex:0 0 auto; perspective:640px; margin-bottom:36px; }
+.env-back{ position:absolute; inset:0; background:var(--env); border-radius:8px;
+           box-shadow:0 12px 22px rgba(224,110,145,.38); }
+.env-bill{
+  position:absolute; left:14px; right:14px; bottom:9px; height:74px; z-index:2;
+  background:linear-gradient(170deg,#FFF6D9 0%,#FBD98A 100%); border-radius:6px;
+  display:grid; place-items:center; font-size:26px;
+  transform:translateY(0);
+}
+.env-front{ position:absolute; left:0; right:0; bottom:0; height:60px; z-index:3;
+            background:linear-gradient(180deg,color-mix(in srgb,var(--env) 88%,#000) 0%,var(--env) 100%);
+            border-radius:0 0 8px 8px; }
+.env-front::after{ content:"💗"; position:absolute; inset:0; display:grid; place-items:center;
+                   font-size:19px; }
+.env-flap{
+  position:absolute; top:0; left:0; width:148px; height:51px; z-index:4;
+  background:linear-gradient(180deg,var(--env) 0%,color-mix(in srgb,var(--env) 80%,#000) 100%);
+  clip-path:polygon(0 0,100% 0,50% 100%);
+  transform-origin:top center; transform:rotateX(0deg); backface-visibility:hidden;
+}
+.env.open .env-flap{ animation:flapOpen .6s cubic-bezier(.5,0,.3,1) forwards; }
+.env.open .env-bill{ animation:billUp .7s cubic-bezier(.2,1.1,.4,1) .45s forwards; }
+@keyframes flapOpen{ to{ transform:rotateX(-172deg); } }
+@keyframes billUp{ to{ transform:translateY(-56px); } }
+
+.chip{ font-size:13px; letter-spacing:.02em; color:var(--pink);
+       border:1.5px solid var(--pink-pale); background:#fff;
+       border-radius:999px; padding:6px 15px;
+       box-shadow:0 2px 8px rgba(238,92,130,.14); }
+.who-name{ font-family:"Jua",sans-serif; font-weight:400; font-size:22px; margin:0; color:var(--ink); }
+.amount{ font-family:"Jua",sans-serif; font-weight:400; font-size:clamp(48px,16vw,70px);
+         line-height:1; margin:0; color:var(--pink); font-variant-numeric:tabular-nums;
+         text-shadow:0 3px 0 rgba(255,255,255,.95); }
+.amount .unit{ font-size:.4em; margin-left:.1em; }
+.msg{ font-size:16px; margin:0; text-wrap:balance; max-width:20em; color:var(--ink); }
+.stamp{ font-size:13px; color:var(--ink-dim); line-height:1.75; margin:0;
+        padding:11px 16px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.stamp strong{ color:var(--ink); font-weight:400; }
+#btnClose{ max-width:258px; font-size:18px; }
+
+#confetti{ position:fixed; inset:0; pointer-events:none; z-index:6; }
+
+@keyframes pop{ from{ transform:scale(.7); opacity:0 } to{ transform:scale(1); opacity:1 } }
+.pop{ animation:pop .45s cubic-bezier(.2,1.5,.4,1) both; }
+@media (prefers-reduced-motion:reduce){
+  .pop,.deco{ animation:none; }
+  .env.open .env-flap{ animation:none; transform:rotateX(-172deg); }
+  .env.open .env-bill{ animation:none; transform:translateY(-56px); }
+  .cta{ transition:none; }
+}
+</style>
+
+<div id="scenery" aria-hidden="true">
+  <div class="wash w1"></div>
+  <div class="wash w2"></div>
+  <div class="wash w3"></div>
+  <div class="deco d1">💖</div>
+  <div class="deco d2">✨</div>
+  <div class="deco d3">🎀</div>
+  <div class="deco d4">💡</div>
+  <div class="deco d5">🌸</div>
+  <div class="deco d6">💕</div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="segmented" role="group" aria-label="명절 선택">
+      <button type="button" id="btnSeol" aria-pressed="true">설날 🧧</button>
+      <button type="button" id="btnChuseok" aria-pressed="false">추석 🌕</button>
+    </div>
+    <button type="button" class="iconbtn" id="btnMute" aria-label="소리 끄기">🔊</button>
+  </div>
+
+  <div class="greeting">
+    <p class="eyebrow" id="eyebrow">새해 복 많이 받으세요 🧧</p>
+    <h1>용돈 룰렛 🎀</h1>
+    <p id="sub">딱 한 번만 돌릴 수 있어요 ✨</p>
+  </div>
+
+  <div class="stage">
+    <svg class="pointer" viewBox="0 0 28 34" aria-hidden="true">
+      <path d="M14 34 L2 7 A 12 12 0 1 1 26 7 Z" fill="#FFFFFF"/>
+      <path d="M14 30.5 L4.8 8 A 10 10 0 1 1 23.2 8 Z" fill="#EE5C82"/>
+      <circle cx="14" cy="10" r="3.2" fill="#FFFFFF"/>
+    </svg>
+    <svg id="wheel" viewBox="0 0 200 200" role="img" aria-label="용돈 룰렛 12칸"></svg>
+  </div>
+
+  <div class="controls">
+    <input id="name" type="text" maxlength="10" autocomplete="off"
+           placeholder="이름을 적어주세요 ✏️" aria-label="뽑는 사람 이름">
+    <button type="button" class="cta" id="btnSpin">돌리기 💫</button>
+  </div>
+
+  <p class="foot" id="foot">
+    꽝 · 1천 · 5천 · 1만 · 2만 · 5만 <b>각 2칸</b> 🎯<br>
+    칸 크기와 상관없이 <b>확률은 모두 12분의 1</b>이에요 💡
+  </p>
+  <button type="button" class="linkish" id="btnShowResult" hidden>내 결과 다시 보기 👀</button>
+
+  <div class="brand" id="brand">
+    <p class="lab">AI Community Lab</p>
+    <p class="name">Hayarobi 💖</p>
+  </div>
+  <button type="button" class="linkish" id="btnReset" hidden>기록 지우고 다시 뽑기 🔄</button>
+</div>
+
+<canvas id="confetti" hidden></canvas>
+
+<div id="result" hidden>
+  <div class="env" id="env">
+    <div class="env-back"></div>
+    <div class="env-bill" id="envBill">💵</div>
+    <div class="env-front"></div>
+    <div class="env-flap"></div>
+  </div>
+  <span class="chip" id="resultChip">🎉 축하합니다</span>
+  <p class="who-name" id="resultName">—</p>
+  <p class="amount pop" id="resultAmount">0<span class="unit">원</span></p>
+  <p class="msg" id="resultMsg"></p>
+  <p class="stamp">
+    <strong id="resultTime"></strong><br>
+    이 화면을 <strong>용돈 주시는 분께</strong> 보여주세요 📱
+  </p>
+  <button type="button" class="cta" id="btnClose">확인 💖</button>
+</div>
+
+<script>
+/* =========================================================================
+   명절 용돈 룰렛 — AI Community Lab Hayarobi
+   구미 코딩모임 발표용이라 주석을 촘촘히 달아 둔다.
+   ========================================================================= */
+
+/* ---------- 1. 룰렛 구성 ---------------------------------------------------
+   12칸. 같은 금액이 2칸씩이고, 짝이 서로 정반대(6칸 차이)에 놓이도록 배치했다.
+   덕분에 이웃한 칸끼리 색이 절대 겹치지 않는다.                              */
+const AMOUNTS = [0, 1000, 5000, 10000, 20000, 50000,
+                 0, 1000, 5000, 10000, 20000, 50000];
+
+/* 칸을 "그리는 너비". 확률과는 무관하고 순전히 보이는 크기다.
+   고액일수록 좁게 그려서 아슬아슬해 보이게 만든다.
+   합이 정확히 12가 되도록 맞춰 뒀다 (→ 1단위 = 30도).
+   실제 당첨은 아래 pickSlot()이 12칸을 균등하게 뽑는다. 즉 좁아 보이는 칸도
+   확률은 똑같이 1/12 — 보이는 것보다 후한 룰렛인 셈이다.                  */
+const WIDTH = { 0:1.55, 1000:1.35, 5000:1.15, 10000:0.95, 20000:0.62, 50000:0.38 };
+
+/* ink 는 칸 위에 얹는 글자색. 연한 칸은 갈색, 진한 핫핑크 칸은 흰색으로
+   나눠 어느 칸에서도 글자가 읽히게 했다.                                    */
+const META = {
+  0:     { label:'꽝',  fill:'var(--c-0)',     ink:'#5C4048', chip:'😢 아쉽지만',
+           bill:'🫧', msg:'꽝이에요! 대신 덕담을 한 아름 드릴게요 🍀' },
+  1000:  { label:'1천', fill:'var(--c-1000)',  ink:'#254257', chip:'🎉 축하합니다',
+           bill:'💵', msg:'천 원도 명절엔 귀한 법이죠 😊' },
+  5000:  { label:'5천', fill:'var(--c-5000)',  ink:'#3B2A57', chip:'🎉 축하합니다',
+           bill:'💵', msg:'오천 원, 떡볶이 한 판은 거뜬해요 🍢' },
+  10000: { label:'1만', fill:'var(--c-10000)', ink:'#69381A', chip:'🎉 축하합니다',
+           bill:'💵', msg:'만 원! 기분 좋게 딱 좋은 금액이에요 😄' },
+  20000: { label:'2만', fill:'var(--c-20000)', ink:'#6B2438', chip:'🍀 운이 좋네요',
+           bill:'💰', msg:'이만 원! 오늘 손끝이 야무지시네요 ✨' },
+  50000: { label:'5만', fill:'var(--c-50000)', ink:'#FFFFFF', chip:'👑 최고 당첨',
+           bill:'🤑', msg:'오만 원! 올해 운을 여기서 다 쓰셨어요 🎊' }
+};
+
+const FESTIVAL = {
+  seollal:{ greeting:'새해 복 많이 받으세요 🧧', emblem:'🧧' },
+  chuseok:{ greeting:'풍성한 한가위 되세요 🌕',  emblem:'🌕' }
+};
+
+const KEY_RESULT = 'myeongjeol-roulette:result';
+const KEY_FEST   = 'myeongjeol-roulette:fest';
+const KEY_MUTED  = 'myeongjeol-roulette:muted';
+
+/* ---------- 2. 저장소 -------------------------------------------------------
+   각자 휴대폰에서 링크를 열어 한 번만 돌리는 구조라, 결과를 그 폰에 남겨 두고
+   재실행을 막는다. 시크릿 모드로 열면 우회되지만 가족끼리 쓰는 용도라
+   이 정도면 충분하다. 저장이 막힌 환경(프라이빗 창 등)에서도 게임 자체는
+   돌아가야 하므로 전부 try/catch로 감싼다.                                  */
+function load(k, fallback){
+  try{ const v = localStorage.getItem(k); return v === null ? fallback : JSON.parse(v); }
+  catch(e){ return fallback; }
+}
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+/* ---------- 3. 공정한 난수 ---------------------------------------------------
+   crypto.getRandomValues 는 0 ~ 2^32-1 을 준다. 이를 그냥 12로 나눈 나머지를
+   쓰면 앞쪽 번호가 아주 미세하게 더 자주 나온다(모듈로 편향).
+   범위를 12의 배수로 잘라내고 넘치는 값은 버려서 편향을 없앴다.             */
+function randomBelow(n){
+  const g = window.crypto && window.crypto.getRandomValues
+          ? window.crypto.getRandomValues.bind(window.crypto) : null;
+  if (!g) return Math.floor(Math.random() * n);        // 아주 옛 브라우저 대비
+  const limit = Math.floor(0x100000000 / n) * n;       // 12의 배수로 자른 상한
+  const buf = new Uint32Array(1);
+  let v;
+  do { g(buf); v = buf[0]; } while (v >= limit);       // 상한을 넘으면 다시 뽑는다
+  return v % n;
+}
+const pickSlot = () => randomBelow(AMOUNTS.length);
+
+/* ---------- 4. 룰렛 그리기 --------------------------------------------------
+   viewBox 200x200, 중심 (100,100). 각도는 12시가 0도이고 시계방향으로 증가한다
+   — 화면 위에 고정된 바늘과 좌표계를 맞추기 위한 규칙이다.
+   칸마다 WIDTH 비율만큼 각도를 나눠 갖는다.                                  */
+const CX = 100, CY = 100, R = 95;
+const layout = [];                   // [{index, amount, start, end, mid, span}]
+
+(function buildLayout(){
+  const total = AMOUNTS.reduce((s,a) => s + WIDTH[a], 0);   // = 12
+  let cursor = 0;
+  AMOUNTS.forEach((amount, index) => {
+    const span = 360 * WIDTH[amount] / total;
+    layout.push({ index, amount, start:cursor, end:cursor + span, mid:cursor + span/2, span });
+    cursor += span;
+  });
+})();
+
+function polar(r, deg){
+  const a = (deg - 90) * Math.PI / 180;          // -90: 0도를 12시 방향으로
+  return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+}
+function wedgePath(r, start, end){
+  const [x1,y1] = polar(r, start), [x2,y2] = polar(r, end);
+  return `M ${CX} ${CY} L ${x1.toFixed(2)} ${y1.toFixed(2)} ` +
+         `A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+}
+
+function drawWheel(){
+  const fest = document.documentElement.getAttribute('data-fest');
+  const p = [];
+  p.push(`<circle cx="${CX}" cy="${CY}" r="${R+4}" fill="#FFFFFF"/>`);
+  p.push(`<circle cx="${CX}" cy="${CY}" r="${R+2.5}" fill="none" stroke="#F58FAC" stroke-width="3.5"/>`);
+
+  layout.forEach(s => {
+    const m = META[s.amount];
+    p.push(`<path d="${wedgePath(R, s.start, s.end)}" fill="${m.fill}" ` +
+           `stroke="#FFFFFF" stroke-width="1.2"/>`);
+    // 좁은 칸은 글자를 조금 작게, 살짝 안쪽으로
+    const narrow = s.span < 22;
+    p.push(`<g transform="rotate(${s.mid.toFixed(2)} ${CX} ${CY})">` +
+             `<text x="${CX}" y="${narrow ? 35 : 31}" text-anchor="middle" fill="${m.ink}" ` +
+                   `font-family="Jua, sans-serif" font-size="${narrow ? 12 : 15}">${m.label}</text>` +
+           `</g>`);
+    const [rx,ry] = polar(R-5, s.start);            // 칸 경계의 작은 점
+    p.push(`<circle cx="${rx.toFixed(2)}" cy="${ry.toFixed(2)}" r="1.8" fill="#FFFFFF"/>`);
+  });
+
+  p.push(`<circle cx="${CX}" cy="${CY}" r="24" fill="#FFFFFF" stroke="#F58FAC" stroke-width="2.5"/>`);
+  p.push(`<text x="${CX}" y="${CY+9}" text-anchor="middle" font-size="24">${FESTIVAL[fest].emblem}</text>`);
+
+  document.getElementById('wheel').innerHTML = p.join('');
+}
+
+/* ---------- 5. 효과음 (음원 파일 없이 Web Audio로 직접 합성) ----------------
+   외부 파일을 받지 않으니 시골집 느린 인터넷에서도 바로 난다.               */
+let audioCtx = null;
+let muted = load(KEY_MUTED, false) === true;
+
+function ctx(){
+  if (!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    audioCtx = new AC();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();   // 모바일은 터치 후에만 소리가 난다
+  return audioCtx;
+}
+function tone(freq, dur, type, vol, delay){
+  if (muted) return;
+  const ac = ctx(); if (!ac) return;
+  const t0 = ac.currentTime + (delay || 0);
+  const osc = ac.createOscillator(), gain = ac.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.2, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const tick     = () => tone(1180, 0.033, 'square', 0.07);           // 따르르륵
+const paper    = () => tone(240, 0.22, 'triangle', 0.09);           // 봉투 여는 소리
+const fanfare  = () => [523.25,659.25,783.99,1046.5]
+                        .forEach((f,i) => tone(f, 0.33, 'triangle', 0.2, i*0.1));
+const sadTrill = () => [392,330,262].forEach((f,i) => tone(f, 0.3, 'sawtooth', 0.11, i*0.14));
+
+/* ---------- 6. 회전 애니메이션 (약 5초) -------------------------------------
+   바늘은 12시에 고정, 원판이 시계방향으로 돈다.
+   원판을 R도 돌리면 바늘이 가리키는 원판 위의 각도는 (360 - R) mod 360 이다.
+   R이 커질수록 이 각도는 작아지므로, 바늘은 각 칸의 end 쪽에서 들어와
+   start 쪽으로 빠져나간다.
+
+   아슬아슬한 연출은 따로 만들지 않는다.
+   멈출 자리를 "칸에 막 들어선 지점"으로 잡아 두면, 감속이 끝나갈 무렵
+   남은 각도가 몇 도밖에 안 되기 때문에 바늘이 경계선을 아주 느리게
+   기어서 넘어간다. 실제 룰렛이 마지막 힘으로 겨우 한 칸 넘어가는 모습과
+   같고, 멈췄다 다시 출발하는 구간이 없어서 이어지는 티가 나지 않는다.     */
+const easeOutQuart = t => 1 - Math.pow(1-t, 4);
+
+const wheelEl = document.getElementById('wheel');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function pointerSlot(rot){
+  const local = (((360 - (rot % 360)) % 360) + 360) % 360;
+  for (const s of layout) if (local >= s.start && local < s.end) return s.index;
+  return -1;
+}
+
+function spinTo(slotIndex, done){
+  const seg = layout[slotIndex];
+
+  /* 칸에 들어서고 나서 얼마나 더 들어간 자리에 설 것인가.
+     4~8도쯤이면 마지막 1초가량을 그 거리에 쓰게 된다. 좁은 칸에서는
+     칸 밖으로 나가지 않도록 폭의 45%로 묶는다.                           */
+  const settleIn = Math.min(seg.span * 0.45, 4 + Math.random() * 4);
+  const target = seg.end - settleIn;                 // 바늘이 최종적으로 설 원판 위 각도
+  const finalRot = 360 * 7 + (360 - target);         // 일곱 바퀴 돌고 그 자리에
+
+  if (reduceMotion){                                 // 모션 최소화 설정이면 바로
+    wheelEl.style.transform = `rotate(${finalRot}deg)`;
+    setTimeout(done, 400);
+    return;
+  }
+
+  /* easeOutQuart 한 곡선으로만 감속한다. 처음 3초에 거의 다 돌고,
+     마지막 1초는 4도 남짓만 움직여 저절로 기어가듯 멈춘다.               */
+  const T = 5200;
+  let lastSeg = -2;
+  const t0 = performance.now();
+
+  function frame(now){
+    const e = now - t0;
+    if (e >= T){
+      wheelEl.style.transform = `rotate(${finalRot}deg)`;
+      done(); return;
+    }
+    const rot = finalRot * easeOutQuart(e / T);
+    wheelEl.style.transform = `rotate(${rot}deg)`;
+    const s = pointerSlot(rot);
+    if (s !== lastSeg){ lastSeg = s; tick(); }       // 칸을 지날 때마다 따르륵
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- 7. 폭죽 — 하트와 반짝이가 쏟아진다 ------------------------------ */
+function confetti(){
+  if (reduceMotion) return;
+  const cv = document.getElementById('confetti');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.hidden = false;
+  cv.width = innerWidth*dpr; cv.height = innerHeight*dpr;
+  cv.style.width = innerWidth+'px'; cv.style.height = innerHeight+'px';
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+
+  const marks = ['💖','✨','🎀','🌸','💕','⭐','🧁'];
+  const bits = Array.from({length:64}, () => ({
+    x: innerWidth/2 + (Math.random()-0.5)*90, y: innerHeight*0.4,
+    vx:(Math.random()-0.5)*10, vy:-7-Math.random()*10,
+    size:17+Math.random()*13,
+    rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.22,
+    m: marks[(Math.random()*marks.length)|0]
+  }));
+
+  const start = performance.now();
+  (function step(now){
+    const life = now - start;
+    g.clearRect(0,0,innerWidth,innerHeight);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    bits.forEach(b => {
+      b.vy += 0.3; b.x += b.vx; b.y += b.vy; b.rot += b.vr;      // 중력
+      g.save(); g.translate(b.x,b.y); g.rotate(b.rot);
+      g.globalAlpha = Math.max(0, 1 - life/2800);
+      g.font = b.size + 'px serif';
+      g.fillText(b.m, 0, 0);
+      g.restore();
+    });
+    if (life < 2800) requestAnimationFrame(step);
+    else { g.clearRect(0,0,innerWidth,innerHeight); cv.hidden = true; }
+  })(start);
+}
+
+/* ---------- 8. 화면 ----------------------------------------------------------- */
+const el = id => document.getElementById(id);
+
+function showResult(record, celebrate){
+  const m = META[record.amount];
+  el('resultChip').textContent = m.chip;
+  el('resultName').textContent = record.name;
+  el('resultAmount').innerHTML = record.amount === 0
+    ? '꽝' : record.amount.toLocaleString('ko-KR') + '<span class="unit">원</span>';
+  el('resultMsg').textContent = m.msg;
+  el('envBill').textContent = m.bill;
+  el('resultTime').textContent =
+    new Date(record.at).toLocaleString('ko-KR',
+      { month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }) + ' 추첨';
+  el('result').hidden = false;
+
+  const env = el('env');
+  env.classList.remove('open');
+  void env.offsetWidth;                                  // 애니메이션 재시작용 리플로우
+  requestAnimationFrame(() => env.classList.add('open'));
+
+  if (celebrate){
+    paper();
+    setTimeout(() => {
+      if (record.amount === 0){ sadTrill(); }
+      else {
+        fanfare(); confetti();
+        if (navigator.vibrate) navigator.vibrate([0,60,50,60,50,140]);
+      }
+    }, 620);
+  }
+}
+
+/* 이미 돌린 폰이면 시작 화면을 잠근다 */
+function lockSpent(record){
+  el('btnSpin').disabled = true;
+  el('btnSpin').textContent = '이미 뽑으셨습니다 🙌';
+  el('name').value = record.name;
+  el('name').disabled = true;
+  el('sub').textContent = '이 휴대폰에서는 이미 뽑으셨어요 🙌';
+  el('foot').innerHTML = '한 사람당 <b>한 번</b>만 돌릴 수 있어요 💗';
+  el('btnShowResult').hidden = false;
+}
+
+/* ---------- 9. 명절 테마 ------------------------------------------------------ */
+function applyFestival(next){
+  document.documentElement.setAttribute('data-fest', next);
+  el('eyebrow').textContent = FESTIVAL[next].greeting;
+  el('btnSeol').setAttribute('aria-pressed', String(next === 'seollal'));
+  el('btnChuseok').setAttribute('aria-pressed', String(next === 'chuseok'));
+  drawWheel();
+  save(KEY_FEST, next);
+}
+
+/* ---------- 10. 연결 ---------------------------------------------------------- */
+let spinning = false;
+
+el('btnSeol').onclick    = () => applyFestival('seollal');
+el('btnChuseok').onclick = () => applyFestival('chuseok');
+
+el('btnMute').onclick = () => {
+  muted = !muted;
+  el('btnMute').textContent = muted ? '🔇' : '🔊';
+  el('btnMute').setAttribute('aria-label', muted ? '소리 켜기' : '소리 끄기');
+  save(KEY_MUTED, muted);
+  if (!muted) tick();
+};
+el('btnMute').textContent = muted ? '🔇' : '🔊';
+
+el('btnSpin').onclick = () => {
+  if (spinning || load(KEY_RESULT, null)) return;
+  spinning = true;
+  ctx();                                       // 첫 터치에 오디오를 깨운다
+
+  /* 결과를 먼저 정하고 곧바로 저장한다.
+     회전 도중 새로고침해서 다시 뽑는 꼼수를 막기 위해서다.                   */
+  const slot   = pickSlot();
+  const record = {
+    name: el('name').value.trim() || '이번 차례',
+    amount: AMOUNTS[slot],
+    at: Date.now()
+  };
+  save(KEY_RESULT, record);
+
+  el('btnSpin').disabled = true;
+  el('name').disabled = true;
+
+  spinTo(slot, () => { spinning = false; showResult(record, true); });
+};
+
+el('btnClose').onclick = () => {
+  el('result').hidden = true;
+  lockSpent(load(KEY_RESULT, { name:'', amount:0, at:Date.now() }));
+};
+el('btnShowResult').onclick = () => {
+  const r = load(KEY_RESULT, null);
+  if (r) showResult(r, false);                 // 다시 볼 때는 축하 연출 없이
+};
+
+/* 숨은 초기화 — 맨 아래 'Hayarobi'를 1.5초 꾹 누르면 버튼이 나타난다.
+   어른이 미리 시험해 본 뒤 기록을 지울 때 쓴다. 아이가 우연히 누를 일은 없다. */
+let holdTimer = null;
+const startHold = () => { holdTimer = setTimeout(() => { el('btnReset').hidden = false; }, 1500); };
+const endHold   = () => clearTimeout(holdTimer);
+['pointerdown'].forEach(ev => el('brand').addEventListener(ev, startHold));
+['pointerup','pointerleave','pointercancel'].forEach(ev => el('brand').addEventListener(ev, endHold));
+el('btnReset').onclick = () => {
+  try{ localStorage.removeItem(KEY_RESULT); }catch(e){}
+  location.reload();
+};
+
+/* ---------- 시작 ------------------------------------------------------------- */
+let fest = load(KEY_FEST, null);
+if (fest !== 'seollal' && fest !== 'chuseok'){
+  const month = new Date().getMonth() + 1;     // 저장된 선택이 없으면 달을 보고 추측
+  fest = (month >= 1 && month <= 3) ? 'seollal' : 'chuseok';
+}
+applyFestival(fest);
+
+const saved = load(KEY_RESULT, null);
+if (saved){ lockSpent(saved); showResult(saved, false); }
+</script>
