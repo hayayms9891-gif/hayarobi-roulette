@@ -47,6 +47,7 @@ AI Community Lab **Hayarobi** — 설날·추석 용돈 뽑기 룰렛
 | 파일 | 용도 |
 |---|---|
 | `index.html` | 게임 전체 (HTML·CSS·JS 한 파일) |
+| `talk.html` | 구미 코딩모임 발표 자료 (데모 4개 포함) |
 | `qr.html` | QR 코드 화면 (모여 있을 때 띄워두는 용도) |
 | `qr.svg` | QR 코드 이미지 (41×41 모듈, 오류정정 H) |
 | `hayarobi.webp` | 하야로비 로고 (1254×1254, 178KB) |

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17121A">
+<meta name="description" content="명절 용돈 룰렛을 만들며 내린 결정 네 가지 — 구미 코딩모임 발표 자료">
+<link rel="icon" href="hayarobi.webp">
+<title>룰렛 만든 이야기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Jua&display=swap">
+
+<style>
+/* 게시기가 자동으로 넣어 주던 최소 리셋 — 정적 호스팅에서는 직접 넣어야 한다 */
+html{ padding: env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px); }
+body{ margin:0; }
+img{ max-width:100%; }
+[hidden]{ display:none !important; }
+</style>
+
+<style>
+/* ── 토큰 ─────────────────────────────────────────────────────────────
+   어두운 화면을 기본으로 삼은 설계다(발표장 프로젝터 기준).
+   bare :root 가 어두운 팔레트, 밝은 테마는 아래에서 토큰만 덮어쓴다.
+   코드 블록만은 두 테마에서 똑같이 어둡게 둔다 — 코드는 그게 읽기 낫다. */
+:root{
+  color-scheme: dark;
+  --bg:#17121A;
+  --surface:#211A26;
+  --surface-2:#2B222F;
+  --line:rgba(243,234,240,.13);
+  --text:#F3EAF0;
+  --dim:#A798AD;
+  --pink:#FF7CA0;
+  --pink-soft:#FFB3C8;
+  --mint:#6FD6B4;
+  --amber:#F2C94C;
+  --code-bg:#100C13;
+  --code-text:#E6DCE8;
+  --code-dim:#8B7C92;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme: light;
+    --bg:#FAF5F8;
+    --surface:#FFFFFF;
+    --surface-2:#F5ECF1;
+    --line:rgba(58,38,52,.15);
+    --text:#241A28;
+    --dim:#75657B;
+    --pink:#CE3566;
+    --pink-soft:#A62A52;
+    --mint:#137C5C;
+    --amber:#8A5E00;
+  }
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --bg:#FAF5F8;
+  --surface:#FFFFFF;
+  --surface-2:#F5ECF1;
+  --line:rgba(58,38,52,.15);
+  --text:#241A28;
+  --dim:#75657B;
+  --pink:#CE3566;
+  --pink-soft:#A62A52;
+  --mint:#137C5C;
+  --amber:#8A5E00;
+}
+
+*{ box-sizing:border-box; }
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:16px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{ max-width:760px; margin-inline:auto; padding-inline:20px; padding-block:0 72px; }
+
+/* ── 타입 ── */
+h1,h2,h3{ margin:0; text-wrap:balance; }
+h1{ font-size:clamp(32px,6vw,52px); font-weight:700; line-height:1.1; letter-spacing:-.02em; }
+h2{ font-size:clamp(23px,3.6vw,30px); font-weight:600; line-height:1.25; letter-spacing:-.01em; }
+h3{ font-size:17px; font-weight:600; }
+p{ margin:0; }
+a{ color:var(--pink); text-underline-offset:3px; }
+strong{ font-weight:600; color:var(--text); }
+.lead{ color:var(--dim); font-size:17px; }
+.mono{ font-family:"IBM Plex Mono",ui-monospace,monospace; }
+
+/* ── 헤더 ── */
+.top{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding-block:20px; flex-wrap:wrap;
+}
+.crumb{ font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.09em;
+        text-transform:uppercase; color:var(--dim); }
+.themebtn{
+  font:inherit; font-size:13px; color:var(--dim); cursor:pointer;
+  background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:6px 14px;
+}
+.themebtn:focus-visible,.btn:focus-visible,.seg button:focus-visible{ outline:2px solid var(--pink); outline-offset:2px; }
+
+.hero{ display:grid; gap:24px; grid-template-columns:1fr; align-items:center; padding-block:12px 40px; }
+@media (min-width:640px){ .hero{ grid-template-columns:1fr auto; gap:36px; } }
+.hero .brand{ font-family:"Jua",sans-serif; color:var(--pink); font-size:19px; margin-bottom:8px; }
+.hero p{ margin-top:14px; }
+.herowheel{ width:min(58vw,196px); aspect-ratio:1; justify-self:center; }
+.herowheel svg{ display:block; width:100%; height:100%; filter:drop-shadow(0 10px 26px rgba(0,0,0,.4)); }
+
+/* 사실 한 줄 */
+.facts{ display:flex; flex-wrap:wrap; gap:10px; margin-top:26px; }
+.fact{
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--dim);
+  background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:7px 12px;
+}
+.fact b{ color:var(--text); font-weight:500; }
+
+/* ── 섹션 ── */
+section{ padding-block:44px; border-top:1px solid var(--line); }
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.06em;
+  color:var(--pink); margin-bottom:9px;
+}
+section > p{ margin-top:16px; max-width:66ch; }
+.sub{ color:var(--dim); }
+
+/* ── 코드 ── */
+pre{
+  background:var(--code-bg); color:var(--code-text);
+  border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  padding:16px 18px; margin:20px 0 0; overflow-x:auto;
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:13.5px; line-height:1.7;
+}
+pre .c{ color:var(--code-dim); }         /* 주석 */
+pre .k{ color:#FF9BB8; }                 /* 키워드 */
+pre .n{ color:#8FD8BE; }                 /* 숫자 */
+pre .s{ color:#F2C97E; }                 /* 문자열 */
+.caption{ font-size:13px; color:var(--dim); margin-top:9px; }
+
+/* ── 데모 판 ── */
+.demo{
+  background:var(--surface); border:1px solid var(--line); border-radius:16px;
+  padding:20px; margin-top:24px;
+}
+.demo h3{ display:flex; align-items:center; gap:8px; }
+.demo h3::before{
+  content:""; width:7px; height:7px; border-radius:50%; background:var(--pink); flex:0 0 auto;
+}
+.demo .hint{ font-size:13.5px; color:var(--dim); margin-top:6px; }
+
+.btn{
+  font:inherit; font-size:14px; font-weight:500; cursor:pointer;
+  background:var(--pink); color:var(--bg); border:0; border-radius:10px; padding:10px 16px;
+}
+.btn.ghost{ background:transparent; color:var(--text); border:1px solid var(--line); }
+.btn:disabled{ opacity:.45; cursor:default; }
+.row{ display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin-top:16px; }
+
+.seg{ display:inline-flex; background:var(--surface-2); border:1px solid var(--line);
+      border-radius:10px; padding:3px; gap:3px; }
+.seg button{ font:inherit; font-size:13.5px; color:var(--dim); background:transparent;
+             border:0; border-radius:7px; padding:7px 13px; cursor:pointer; }
+.seg button[aria-pressed="true"]{ background:var(--pink); color:var(--bg); font-weight:500; }
+
+/* 확률 데모 */
+.probgrid{ display:grid; gap:22px; grid-template-columns:1fr; align-items:start; margin-top:18px; }
+@media (min-width:600px){ .probgrid{ grid-template-columns:auto 1fr; gap:26px; } }
+.probwheel{ width:min(56vw,200px); aspect-ratio:1; justify-self:center; }
+.probwheel svg{ display:block; width:100%; height:100%; }
+
+table{ border-collapse:collapse; width:100%; font-size:13.5px; }
+th,td{ padding:6px 4px; text-align:right; border-bottom:1px solid var(--line); }
+th{ color:var(--dim); font-weight:500; font-size:12px; letter-spacing:.03em; }
+th:first-child,td:first-child{ text-align:left; }
+td{ font-variant-numeric:tabular-nums; font-family:"IBM Plex Mono",monospace; }
+td.name{ font-family:inherit; }
+.swatch{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:7px;
+         vertical-align:middle; }
+.bar{ display:block; height:5px; border-radius:3px; background:var(--pink); margin-top:4px; }
+.bar.sim{ background:var(--mint); }
+
+.readout{
+  display:flex; flex-wrap:wrap; gap:18px; margin-top:16px;
+  padding-top:14px; border-top:1px solid var(--line);
+}
+.readout div{ font-size:13px; color:var(--dim); }
+.readout b{ display:block; font-family:"IBM Plex Mono",monospace; font-size:19px;
+            color:var(--text); font-weight:500; font-variant-numeric:tabular-nums; }
+
+/* 이징 비교 */
+.easerow{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:18px; }
+.easecell{ text-align:center; }
+.easecell .tag{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.05em; }
+.easecell.old .tag{ color:var(--amber); }
+.easecell.now .tag{ color:var(--mint); }
+.easecell svg{ display:block; width:100%; aspect-ratio:1; margin-top:8px; }
+.easecell .note{ font-size:12.5px; color:var(--dim); margin-top:8px; min-height:2.6em; }
+
+/* DOCTYPE 비교 */
+.framerow{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
+.framecell .tag{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.05em;
+                 display:block; margin-bottom:7px; }
+.framecell.bad .tag{ color:var(--amber); }
+.framecell.good .tag{ color:var(--mint); }
+.framecell iframe{
+  width:100%; aspect-ratio:9/16; border:1px solid var(--line); border-radius:10px;
+  background:#fff; display:block;
+}
+.framecell .mode{ font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--dim); margin-top:7px; }
+
+/* 마무리 */
+.links{ display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+.linkcard{
+  flex:1 1 220px; background:var(--surface); border:1px solid var(--line);
+  border-radius:12px; padding:14px 16px; text-decoration:none; color:var(--text);
+}
+.linkcard span{ display:block; font-size:12.5px; color:var(--dim); margin-top:3px;
+                font-family:"IBM Plex Mono",monospace; word-break:break-all; }
+.sig{ margin-top:36px; padding-top:20px; border-top:1px solid var(--line);
+      font-size:13px; color:var(--dim); }
+.sig b{ font-family:"Jua",sans-serif; color:var(--pink); font-weight:400; font-size:16px; }
+
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms !important; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <span class="crumb">구미 코딩모임 · 2026</span>
+    <button type="button" class="themebtn" id="themeBtn">밝게 보기</button>
+  </div>
+
+  <header class="hero">
+    <div>
+      <p class="brand">AI커뮤니티랩 하야로비</p>
+      <h1>명절 용돈 룰렛<br>만든 이야기</h1>
+      <p class="lead">
+        HTML 파일 하나로 만든 룰렛 게임입니다. 만들면서 내린 결정 네 가지를
+        직접 눌러보며 확인할 수 있게 정리했습니다.
+      </p>
+      <div class="facts">
+        <span class="fact"><b>834</b>줄</span>
+        <span class="fact">JS 라이브러리 <b>0</b>개</span>
+        <span class="fact">빌드 <b>없음</b></span>
+        <span class="fact"><b>39</b>KB</span>
+        <span class="fact">배포 <b>50초</b></span>
+      </div>
+    </div>
+    <div class="herowheel" id="heroWheel"></div>
+  </header>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <section>
+    <p class="eyebrow">pickSlot()</p>
+    <h2>확률표를 만들지 않고, 각도를 뽑았습니다</h2>
+    <p>
+      칸마다 당첨 확률이 다른 룰렛을 만들 때 보통은 가중치 배열을 따로 둡니다.
+      그러면 <strong>그린 칸 크기와 실제 확률이 따로 놉니다.</strong>
+      화면엔 좁은데 잘 나오거나, 그 반대가 되기 쉽습니다.
+    </p>
+    <p>
+      대신 원판 위의 <strong>각도</strong>를 0~360도에서 균등하게 찍고,
+      그 각도가 어느 칸에 속하는지만 봤습니다.
+      확률이 칸 넓이와 저절로 같아지고, 관리할 표가 사라집니다.
+    </p>
+
+<pre><span class="c">// 칸 번호를 뽑지 않는다. 각도를 뽑고 그 각도가 속한 칸을 준다.</span>
+<span class="k">function</span> pickSlot(){
+  <span class="k">const</span> a = random01() * <span class="n">360</span>;
+  <span class="k">for</span> (<span class="k">const</span> s <span class="k">of</span> layout)
+    <span class="k">if</span> (a &gt;= s.start &amp;&amp; a &lt; s.end) <span class="k">return</span> s.index;
+}</pre>
+    <p class="caption">
+      덤: 나머지 연산을 안 쓰니 <span class="mono">crypto.getRandomValues()</span> 의
+      모듈로 편향도 애초에 생기지 않습니다.
+    </p>
+
+    <div class="demo">
+      <h3>칸 크기를 바꾸면 확률이 따라옵니다</h3>
+      <p class="hint">고액 칸을 좁힐수록 5만원이 드물어집니다. 코드는 한 줄도 안 바뀝니다.</p>
+
+      <div class="row">
+        <div class="seg" role="group" aria-label="칸 너비 설정">
+          <button type="button" id="wmA" aria-pressed="true">실제 배포본</button>
+          <button type="button" id="wmB" aria-pressed="false">모두 같은 크기</button>
+          <button type="button" id="wmC" aria-pressed="false">더 짜게</button>
+        </div>
+      </div>
+
+      <div class="probgrid">
+        <div class="probwheel" id="probWheel"></div>
+        <div>
+          <table>
+            <thead>
+              <tr><th>금액</th><th>각도</th><th>이론</th><th>실측</th></tr>
+            </thead>
+            <tbody id="probBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="btn" id="simBtn">10만 번 돌리기</button>
+        <button type="button" class="btn ghost" id="simReset">실측 지우기</button>
+      </div>
+
+      <div class="readout">
+        <div>1인당 기댓값<b id="evOut">—</b></div>
+        <div>5만원 확률<b id="topOut">—</b></div>
+        <div>10명이면<b id="tenOut">—</b></div>
+        <div>누적 시행<b id="nOut">0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <section>
+    <p class="eyebrow">spinTo()</p>
+    <h2>아슬아슬함은 연출이 아니라 좌표계에서 나옵니다</h2>
+    <p>
+      처음엔 <strong>3단계</strong>로 만들었습니다. 한 칸 지나친 곳까지 굴리고,
+      0.38초 완전히 멈추고, 다시 출발해 되돌아오기. 그런데 속도가 0이 됐다
+      다시 붙으니 <strong>누가 뒤에서 원판을 미는 것처럼</strong> 보였습니다.
+    </p>
+    <p>
+      고친 방법은 연출을 더 다듬는 게 아니라 <strong>멈출 자리를 옮기는 것</strong>이었습니다.
+      원판을 R도 돌리면 바늘이 가리키는 각도는 <span class="mono">(360 − R) mod 360</span> 이라,
+      R이 커질수록 바늘은 칸의 <em>오른쪽에서 들어와 왼쪽으로</em> 빠집니다.
+      그래서 멈출 자리를 “칸에 막 들어선 지점”으로 잡으면,
+      감속이 끝나갈 때 남은 각도가 몇 도뿐이라 <strong>저절로 경계선을 기어서 넘습니다.</strong>
+    </p>
+
+<pre><span class="c">// 멈출 자리 = 칸에 막 들어선 지점(안쪽 4~8도)</span>
+<span class="k">const</span> settleIn = Math.min(seg.span * <span class="n">0.45</span>, <span class="n">4</span> + Math.random() * <span class="n">4</span>);
+<span class="k">const</span> target   = seg.end - settleIn;
+<span class="k">const</span> finalRot = <span class="n">360</span> * <span class="n">7</span> + (<span class="n">360</span> - target);   <span class="c">// 일곱 바퀴 + 그 자리</span>
+
+<span class="c">// 감속은 곡선 하나뿐. 멈췄다 다시 미는 구간이 없다.</span>
+<span class="k">const</span> rot = from + delta * easeOutQuart(e / T);</pre>
+
+    <div class="demo">
+      <h3>옛 방식과 지금 방식</h3>
+      <p class="hint">둘 다 같은 칸에 멈춥니다. 마지막 1초를 보세요.</p>
+      <div class="row"><button type="button" class="btn" id="easeBtn">나란히 돌려보기</button></div>
+      <div class="easerow">
+        <div class="easecell old">
+          <span class="tag">옛 방식 · 3단계</span>
+          <svg id="wheelOld" viewBox="0 0 200 200"></svg>
+          <p class="note" id="noteOld">멈췄다가 다시 출발합니다</p>
+        </div>
+        <div class="easecell now">
+          <span class="tag">지금 · 곡선 하나</span>
+          <svg id="wheelNew" viewBox="0 0 200 200"></svg>
+          <p class="note" id="noteNew">쉬지 않고 느려지다 멈춥니다</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <section>
+    <p class="eyebrow">tone()</p>
+    <h2>효과음은 파일이 아니라 파형입니다</h2>
+    <p>
+      mp3를 받지 않고 <span class="mono">AudioContext</span> 로 소리를 직접 만듭니다.
+      네트워크를 타지 않으니 <strong>시골집 느린 와이파이에서도 첫 터치에 바로 납니다.</strong>
+      게임 전체 효과음이 이 함수 하나에서 나옵니다.
+    </p>
+
+<pre><span class="k">const</span> tick    = () =&gt; tone(<span class="n">1180</span>, <span class="n">0.033</span>, <span class="s">'square'</span>, <span class="n">0.07</span>);
+<span class="k">const</span> fanfare = () =&gt; [<span class="n">523.25</span>, <span class="n">659.25</span>, <span class="n">783.99</span>, <span class="n">1046.5</span>]  <span class="c">// 도미솔도</span>
+                     .forEach((f, i) =&gt; tone(f, <span class="n">0.33</span>, <span class="s">'triangle'</span>, <span class="n">0.2</span>, i * <span class="n">0.1</span>));</pre>
+    <p class="caption">
+      딸깍 소리는 타이머가 아니라 <strong>매 프레임 바늘이 가리키는 칸이 바뀌었는지</strong> 보고 냅니다.
+      그래서 속도에 맞춰 저절로 느려지고, 끝에서는 경계를 넘는 순간 딱 한 번만 울립니다.
+    </p>
+
+    <div class="demo">
+      <h3>게임에 쓰인 소리 그대로</h3>
+      <p class="hint">아래 버튼은 게임과 똑같은 코드로 그 자리에서 파형을 만듭니다.</p>
+      <div class="row">
+        <button type="button" class="btn" data-snd="tick">따르륵</button>
+        <button type="button" class="btn" data-snd="paper">봉투 열기</button>
+        <button type="button" class="btn" data-snd="fanfare">당첨 팡파레</button>
+        <button type="button" class="btn ghost" data-snd="sad">꽝</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <section>
+    <p class="eyebrow">&lt;!DOCTYPE html&gt;</p>
+    <h2>한 줄이 빠져서 레이아웃이 통째로 무너진 사건</h2>
+    <p>
+      폰에서 열어보니 내용이 위쪽 절반에만 몰리고 아래가 텅 비었습니다.
+      여백 설정을 아무리 만져도 그대로였습니다. 원인은 CSS가 아니었습니다.
+    </p>
+    <p>
+      이 파일은 원래 다른 게시 방식으로 만들어서 <strong>문서 골격을 시스템이 자동으로
+      붙여주고 있었고</strong>, GitHub Pages는 파일을 있는 그대로 내보내니 그게 통째로
+      빠진 채 나갔습니다. <span class="mono">&lt;!DOCTYPE html&gt;</span> 이 없으면 브라우저는
+      <strong>호환 모드(quirks mode)</strong> 로 읽고, 그러면
+      <span class="mono">html, body</span> 의 <span class="mono">height:100%</span> 가 풀립니다.
+      높이를 물려받을 기준이 사라지니 <span class="mono">min-height:100%</span> 도 0이 됩니다.
+    </p>
+
+    <div class="demo">
+      <h3>같은 CSS, DOCTYPE만 다름</h3>
+      <p class="hint">아래 두 틀은 내용과 스타일이 완전히 똑같습니다. 첫 줄 하나만 다릅니다.</p>
+      <div class="framerow">
+        <div class="framecell bad">
+          <span class="tag">DOCTYPE 없음</span>
+          <iframe id="frameBad" title="DOCTYPE 없는 경우"></iframe>
+          <p class="mode" id="modeBad">—</p>
+        </div>
+        <div class="framecell good">
+          <span class="tag">DOCTYPE 있음</span>
+          <iframe id="frameGood" title="DOCTYPE 있는 경우"></iframe>
+          <p class="mode" id="modeGood">—</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin-top:26px">
+      고치고 난 뒤엔 세 가지를 얹어 화면을 채웠습니다.
+      <span class="mono">100dvh</span> 는 카톡 내장 브라우저에서 주소창이 접혔다 펴져도
+      실제 보이는 높이를 따라가고, <span class="mono">space-between</span> 이 남는 세로 공간을
+      덩어리 사이로 나누고, <span class="mono">vh</span> 기반
+      <span class="mono">clamp</span> 가 폰 크기에 맞춰 룰렛을 키웁니다.
+    </p>
+
+<pre>.wrap{
+  min-height: <span class="n">100dvh</span>;                  <span class="c">/* 주소창 접힘 대응 */</span>
+  justify-content: space-between;      <span class="c">/* 남는 공간 고르게 */</span>
+  gap: clamp(<span class="n">4px</span>, <span class="n">1.3vh</span>, <span class="n">20px</span>);
+}
+.stage{ width: min(<span class="n">84vw</span>, <span class="n">40vh</span>, <span class="n">360px</span>); }   <span class="c">/* 가로·세로 중 작은 쪽 */</span></pre>
+    <p class="caption">
+      실측: 360×640에서 룰렛 지름 234px, 430×932에서 360px. 모든 기종에서 스크롤 없음.
+    </p>
+  </section>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <section>
+    <p class="eyebrow">정리</p>
+    <h2>네 번 다 “더 만들기”가 아니라 “덜 만들기”였습니다</h2>
+    <p>
+      확률은 가중치 표를 <strong>없애서</strong>, 아슬아슬함은 연출 단계를
+      <strong>없애서</strong>, 효과음은 음원 파일을 <strong>없애서</strong>,
+      레이아웃은 빠진 한 줄을 <strong>되찾아서</strong> 해결됐습니다.
+      코드가 줄면서 오히려 정확해진 경우들입니다.
+    </p>
+
+    <div class="links">
+      <a class="linkcard" href="https://hayayms9891-gif.github.io/hayarobi-roulette/" target="_blank" rel="noopener">
+        게임 열어보기
+        <span>hayayms9891-gif.github.io/hayarobi-roulette/</span>
+      </a>
+      <a class="linkcard" href="https://github.com/hayayms9891-gif/hayarobi-roulette" target="_blank" rel="noopener">
+        코드 보기
+        <span>github.com/hayayms9891-gif/hayarobi-roulette</span>
+      </a>
+    </div>
+
+    <p class="sig">
+      <b>AI커뮤니티랩 하야로비</b><br>
+      AI 인재와 지역을 연결하는 AI 협업 플랫폼
+    </p>
+  </section>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   발표용 데모 — 게임에 쓰인 코드를 그대로 가져와 돌린다
+   ══════════════════════════════════════════════════════════════════ */
+const el = id => document.getElementById(id);
+
+const AMOUNTS = [0,1000,5000,10000,20000,50000, 0,1000,5000,10000,20000,50000];
+const COLOR = { 0:'#DCC9D1', 1000:'#A9CCE8', 5000:'#BCA9E4',
+                10000:'#F8C0A0', 20000:'#F58FAC', 50000:'#EE5C82' };
+const INK   = { 0:'#5C4048', 1000:'#254257', 5000:'#3B2A57',
+                10000:'#69381A', 20000:'#6B2438', 50000:'#FFFFFF' };
+const LABEL = { 0:'꽝', 1000:'1천', 5000:'5천', 10000:'1만', 20000:'2만', 50000:'5만' };
+
+/* 칸 너비 세 가지 — 합이 12가 되게 맞춰 두면 1단위가 곧 30도다 */
+const PRESETS = {
+  A: { 0:1.55, 1000:1.35, 5000:1.15, 10000:0.95, 20000:0.62, 50000:0.38 },  // 실제 배포본
+  B: { 0:1.00, 1000:1.00, 5000:1.00, 10000:1.00, 20000:1.00, 50000:1.00 },  // 균등
+  C: { 0:1.95, 1000:1.60, 5000:1.20, 10000:0.80, 20000:0.32, 50000:0.13 }   // 더 짜게
+};
+
+/* ── 부채꼴 그리기 (게임과 동일) ────────────────────────────────── */
+const CX = 100, CY = 100, R = 95;
+function polar(r, deg){
+  const a = (deg - 90) * Math.PI / 180;        // -90: 0도를 12시 방향으로
+  return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+}
+function wedge(r, start, end){
+  const [x1,y1] = polar(r, start), [x2,y2] = polar(r, end);
+  return `M ${CX} ${CY} L ${x1.toFixed(2)} ${y1.toFixed(2)} ` +
+         `A ${r} ${r} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+}
+function buildLayout(width){
+  const total = AMOUNTS.reduce((s,a) => s + width[a], 0);
+  let cur = 0;
+  return AMOUNTS.map((amount, index) => {
+    const span = 360 * width[amount] / total;
+    const seg = { index, amount, start:cur, end:cur+span, mid:cur+span/2, span };
+    cur += span;
+    return seg;
+  });
+}
+function wheelSvg(layout, opts){
+  const o = opts || {};
+  const p = [`<circle cx="${CX}" cy="${CY}" r="${R+3}" fill="#FFFFFF"/>`,
+             `<circle cx="${CX}" cy="${CY}" r="${R+1.5}" fill="none" stroke="#F58FAC" stroke-width="3"/>`];
+  layout.forEach(s => {
+    p.push(`<path d="${wedge(R, s.start, s.end)}" fill="${COLOR[s.amount]}" stroke="#fff" stroke-width="1.1"/>`);
+    if (!o.noLabel && s.span > 13){
+      const narrow = s.span < 22;
+      p.push(`<g transform="rotate(${s.mid.toFixed(2)} ${CX} ${CY})">` +
+             `<text x="${CX}" y="${narrow?34:30}" text-anchor="middle" fill="${INK[s.amount]}" ` +
+             `font-family="IBM Plex Sans KR, sans-serif" font-weight="600" ` +
+             `font-size="${narrow?11:14}">${LABEL[s.amount]}</text></g>`);
+    }
+  });
+  p.push(`<circle cx="${CX}" cy="${CY}" r="19" fill="#FFFFFF" stroke="#F58FAC" stroke-width="2"/>`);
+  return `<svg viewBox="0 0 200 200" role="img" aria-label="용돈 룰렛 12칸">${p.join('')}</svg>`;
+}
+/* 12시에 고정된 바늘 */
+const POINTER = `<svg viewBox="0 0 200 200" style="position:absolute;inset:0" aria-hidden="true">
+  <path d="M100 34 L92 8 A 9 9 0 1 1 108 8 Z" fill="#fff"/>
+  <path d="M100 30 L94.5 9 A 7 7 0 1 1 105.5 9 Z" fill="#EE5C82"/></svg>`;
+
+/* ── 히어로 ─────────────────────────────────────────────────────── */
+el('heroWheel').innerHTML = wheelSvg(buildLayout(PRESETS.A));
+
+/* ══ 데모 1 — 확률 ═══════════════════════════════════════════════ */
+let widthMode = 'A';
+let layout = buildLayout(PRESETS[widthMode]);
+let simCount = 0, simHits = {};
+
+function random01(){
+  const g = self.crypto && self.crypto.getRandomValues;
+  if (!g) return Math.random();
+  const b = new Uint32Array(1); self.crypto.getRandomValues(b);
+  return b[0] / 0x100000000;                    // 나머지 연산 없음 → 편향 없음
+}
+function pickSlot(){
+  const a = random01() * 360;
+  for (const s of layout) if (a >= s.start && a < s.end) return s.index;
+  return layout.length - 1;
+}
+
+const AMTS = [0,1000,5000,10000,20000,50000];
+const won = n => n.toLocaleString('ko-KR') + '원';
+
+function theory(amount){
+  const w = PRESETS[widthMode];
+  const total = AMOUNTS.reduce((s,a) => s + w[a], 0);
+  return w[amount] * 2 / total;                 // 같은 금액이 2칸씩
+}
+function renderProb(){
+  el('probWheel').innerHTML =
+    `<div style="position:relative">${wheelSvg(layout)}${POINTER}</div>`;
+
+  el('probBody').innerHTML = AMTS.map(a => {
+    const t = theory(a);
+    const deg = t * 360;
+    const sim = simCount ? (simHits[a] || 0) / simCount : null;
+    return `<tr>
+      <td class="name"><span class="swatch" style="background:${COLOR[a]}"></span>${
+        a === 0 ? '꽝' : won(a)}</td>
+      <td>${deg.toFixed(1)}°</td>
+      <td>${(t*100).toFixed(2)}%<span class="bar" style="width:${(t*100*3.2).toFixed(1)}%"></span></td>
+      <td>${sim === null ? '—' : (sim*100).toFixed(2)+'%'}${
+        sim === null ? '' : `<span class="bar sim" style="width:${(sim*100*3.2).toFixed(1)}%"></span>`}</td>
+    </tr>`;
+  }).join('');
+
+  const ev = AMTS.reduce((s,a) => s + a * theory(a), 0);
+  el('evOut').textContent  = won(Math.round(ev));
+  el('topOut').textContent = (theory(50000)*100).toFixed(1) + '%';
+  el('tenOut').textContent = won(Math.round(ev*10));
+  el('nOut').textContent   = simCount.toLocaleString('ko-KR');
+}
+
+function setMode(m){
+  widthMode = m;
+  layout = buildLayout(PRESETS[m]);
+  simCount = 0; simHits = {};
+  ['wmA','wmB','wmC'].forEach(id =>
+    el(id).setAttribute('aria-pressed', String(id === 'wm' + m)));
+  renderProb();
+}
+el('wmA').onclick = () => setMode('A');
+el('wmB').onclick = () => setMode('B');
+el('wmC').onclick = () => setMode('C');
+
+el('simBtn').onclick = () => {
+  const btn = el('simBtn');
+  btn.disabled = true; btn.textContent = '돌리는 중…';
+  setTimeout(() => {                             // 버튼 상태가 먼저 그려지도록
+    for (let i = 0; i < 100000; i++){
+      const a = AMOUNTS[pickSlot()];
+      simHits[a] = (simHits[a] || 0) + 1;
+    }
+    simCount += 100000;
+    renderProb();
+    btn.disabled = false; btn.textContent = '10만 번 더 돌리기';
+  }, 20);
+};
+el('simReset').onclick = () => {
+  simCount = 0; simHits = {};
+  el('simBtn').textContent = '10만 번 돌리기';
+  renderProb();
+};
+renderProb();
+
+/* ══ 데모 2 — 이징 비교 ══════════════════════════════════════════ */
+const easeLayout = buildLayout(PRESETS.A);
+const easeOutQuart = t => 1 - Math.pow(1-t, 4);
+const easeOutCubic = t => 1 - Math.pow(1-t, 3);
+
+['wheelOld','wheelNew'].forEach(id => {
+  el(id).outerHTML = `<div id="${id}" style="position:relative">
+    ${wheelSvg(easeLayout, {noLabel:false})}${POINTER}</div>`;
+});
+const spinnerOld = el('wheelOld').querySelector('svg');
+const spinnerNew = el('wheelNew').querySelector('svg');
+[spinnerOld, spinnerNew].forEach(s => { s.style.transformOrigin = '50% 50%'; });
+
+let easeBusy = false;
+el('easeBtn').onclick = () => {
+  if (easeBusy) return;
+  easeBusy = true;
+  el('easeBtn').disabled = true;
+
+  const seg = easeLayout[5];                     // 둘 다 5만원 칸에 세운다
+  const finalRot = 360*5 + (360 - (seg.end - seg.span*0.3));
+
+  /* 옛 방식: 한 칸 지나친 곳까지 → 완전 정지 → 다시 출발 */
+  const over = seg.span*0.5 + easeLayout[6].span*0.55;
+  const nearRot = finalRot - over;
+  const T1 = 2600, PAUSE = 380, T2 = 900;
+  /* 지금 방식: 곡선 하나 */
+  const T = T1 + PAUSE + T2;
+
+  const t0 = performance.now();
+  let saidPause = false, saidCreep = false;
+  el('noteOld').textContent = '';
+  el('noteNew').textContent = '';
+
+  (function frame(now){
+    const e = now - t0;
+
+    let ro;
+    if (e < T1)                 ro = nearRot * easeOutQuart(e / T1);
+    else if (e < T1 + PAUSE){   ro = nearRot;
+      if (!saidPause){ saidPause = true; el('noteOld').textContent = '정지 — 여기서 끊깁니다'; } }
+    else if (e < T)             ro = nearRot + (finalRot - nearRot) * easeOutCubic((e - T1 - PAUSE) / T2);
+    else                        ro = finalRot;
+    spinnerOld.style.transform = `rotate(${ro}deg)`;
+
+    const rn = Math.min(e, T) >= T ? finalRot : finalRot * easeOutQuart(e / T);
+    spinnerNew.style.transform = `rotate(${rn}deg)`;
+    if (!saidCreep && e > T * 0.78){
+      saidCreep = true; el('noteNew').textContent = '경계선을 기어서 넘는 중';
+    }
+
+    if (e < T) requestAnimationFrame(frame);
+    else {
+      el('noteOld').textContent = '멈췄다가 다시 출발합니다';
+      el('noteNew').textContent = '쉬지 않고 느려지다 멈춥니다';
+      easeBusy = false; el('easeBtn').disabled = false;
+    }
+  })(t0);
+};
+
+/* ══ 데모 3 — Web Audio ══════════════════════════════════════════ */
+let ac = null;
+function ctx(){
+  if (!ac){
+    const AC = self.AudioContext || self.webkitAudioContext;
+    if (!AC) return null;
+    ac = new AC();
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(freq, dur, type, vol, delay){
+  const a = ctx(); if (!a) return;
+  const t0 = a.currentTime + (delay || 0);
+  const osc = a.createOscillator(), gain = a.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.2, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(a.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const SOUNDS = {
+  tick:    () => { for (let i = 0; i < 9; i++) tone(1180, 0.033, 'square', 0.07, i * 0.075); },
+  paper:   () => tone(240, 0.22, 'triangle', 0.09),
+  fanfare: () => [523.25,659.25,783.99,1046.5].forEach((f,i) => tone(f, 0.33, 'triangle', 0.2, i*0.1)),
+  sad:     () => [392,330,262].forEach((f,i) => tone(f, 0.3, 'sawtooth', 0.11, i*0.14))
+};
+document.querySelectorAll('[data-snd]').forEach(b => {
+  b.onclick = () => SOUNDS[b.dataset.snd]();
+});
+
+/* ══ 데모 4 — DOCTYPE ════════════════════════════════════════════ */
+const INNER = `<style>
+html,body{height:100%;margin:0}
+body{font:13px/1.5 sans-serif;background:#FFF1F6;color:#4A2C22}
+.wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;
+      justify-content:space-between;padding:10px 8px;text-align:center}
+.dot{width:34px;height:34px;border-radius:50%;background:#EE5C82}
+.wheel{width:74%;aspect-ratio:1;border-radius:50%;
+       background:conic-gradient(#DCC9D1 0 25%,#A9CCE8 0 45%,#BCA9E4 0 62%,
+                  #F8C0A0 0 78%,#F58FAC 0 90%,#EE5C82 0 100%);
+       border:3px solid #F58FAC}
+.btn{width:100%;background:#F2789D;color:#fff;border-radius:9px;padding:8px 0;font-weight:600}
+.cap{color:#A98A83;font-size:11px}
+</style>
+<div class="wrap">
+  <div class="dot"></div>
+  <div class="wheel"></div>
+  <div style="width:100%"><div class="btn">돌리기</div></div>
+  <div class="cap">하야로비</div>
+</div>`;
+
+el('frameBad').srcdoc  = INNER;                      // DOCTYPE 없음 → 호환 모드
+el('frameGood').srcdoc = '<!DOCTYPE html>' + INNER;  // 있음 → 표준 모드
+
+function readMode(frameId, outId){
+  const f = el(frameId);
+  f.addEventListener('load', () => {
+    let m = '?';
+    try{ m = f.contentDocument.compatMode; }catch(e){}
+    el(outId).textContent = m === 'CSS1Compat'
+      ? 'compatMode: CSS1Compat (표준)'
+      : 'compatMode: BackCompat (호환)';
+  });
+}
+readMode('frameBad',  'modeBad');
+readMode('frameGood', 'modeGood');
+
+/* ══ 테마 ════════════════════════════════════════════════════════ */
+const root = document.documentElement;
+function labelTheme(){
+  const dark = root.getAttribute('data-theme') !== 'light';
+  el('themeBtn').textContent = dark ? '밝게 보기' : '어둡게 보기';
+}
+el('themeBtn').onclick = () => {
+  const now = root.getAttribute('data-theme');
+  root.setAttribute('data-theme', now === 'light' ? 'dark' : 'light');
+  labelTheme();
+  try{ localStorage.setItem('talk-theme', root.getAttribute('data-theme')); }catch(e){}
+};
+try{
+  const saved = localStorage.getItem('talk-theme');
+  if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+}catch(e){}
+labelTheme();
+</script>
+
+</body>
+</html>
